@@ -162,4 +162,4 @@ For next commands connection to storage servers is required. Necessary storage s
 
 ## 3. Component diagram
 
-![component diagram image](https://raw.githubusercontent.com/Prometheus3375/dfs/master/Diagrams/Component%20Diagram.png)
+![component diagram image](Diagrams/Component%20Diagram.png)
