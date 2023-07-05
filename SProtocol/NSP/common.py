@@ -1,5 +1,5 @@
 from Common.Misc import EnumCode
-from Common.Socket import SendInt, RecvInt, socket, SendStr, RecvStr
+from Common.Socket import SendInt, RecvInt, socket, SendStr, RecvStr, SleepTime
 from SProtocol.common import SPException
 
 Commands = EnumCode()
@@ -18,7 +18,7 @@ Cmd_Download = Commands('download')
 Cmd_PrepareReplicate = Commands('prep replicate')
 Cmd_DoReplicate = Commands('do replicate')
 
-LocateTimeout = 0.01  # in seconds
+LocateTimeout = SleepTime * 3  # in seconds
 InfoSeparator = '\n'
 LoadTimeout = 60  # in seconds
 PathSeparator = '\n'
