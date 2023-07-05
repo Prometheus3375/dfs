@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import CNProtocol.сlient as CNP
 from Common.Constants import *
 from Common.Shell import shell, Command, User
@@ -8,6 +10,7 @@ FS = FileSystem()
 Server = ...  # is set in SetServer
 CallVFSOutput = ...  # is set in CallVFS
 CallCNPOutput = ...  # is set in CallCNP
+DateTimeFormat = '%c'
 
 
 def CallVFS(func, *args):
@@ -181,7 +184,36 @@ def copy(what: str, to: str):
 def flush():
     if not CallCNP(CNP.flush, print_response=False):
         FS.flush()
-        print('Available space: {} GiB'.format(CallCNPOutput))
+        print(f'Available space: {CallCNPOutput // (2 ** 30)} GiB')
+
+
+def info(path: str):
+    # if CallVFS(FS.nodeAt, path):
+    #     return
+    try:
+        node = FS.nodeAt(path)
+        path = node.getPath()
+        if node.isDir:
+            print('\'%s\' is a directory, getting info of directories is not supported yet' % path)
+            return
+    except VFSException as e:
+        print(e)
+        return
+    if not CallCNP(CNP.info, path, print_response=False):
+        re = CallCNPOutput
+        if isinstance(re, str):
+            print(re)
+            return
+        stats: list = CallCNPOutput
+        size = int(stats[0])
+        atime = datetime.fromtimestamp(float(stats[1]))
+        ctime = datetime.fromtimestamp(float(stats[2]))
+        mtime = datetime.fromtimestamp(float(stats[3]))
+        print(f'Size - {size // (2 ** 20)} MiB\n'
+              f'Last access time - {atime.strftime(DateTimeFormat)}\n'
+              f'Last meta change time - {ctime.strftime(DateTimeFormat)}\n'
+              f'Last modification time - {mtime.strftime(DateTimeFormat)}\n'
+              )
 
 
 # endregion
@@ -202,7 +234,7 @@ Command.add('mv', 2, (str, str), move)
 Command.add('cp', 2, (str, str), copy)
 
 Command.zero('flush', flush)
-Command.one('info', str, lambda path: None)
+Command.one('info', str, info)
 Command.add('upload', 2, (str, str), lambda real, virt: None)
 Command.add('download', 2, (str, str), lambda virt, real: None)
 

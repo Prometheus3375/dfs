@@ -119,5 +119,21 @@ def Flush():
 
 @_lock
 def GetFreeSpace() -> int:
-    total, used, free = shutil.disk_usage('/')
-    return free // (2 ** 30)
+    total, used, free = shutil.disk_usage('.')
+    return free
+
+
+def _get_dir_size(path: str):
+    space = 0
+    for entry in os.scandir(path):
+        if entry.is_dir(follow_symlinks=False):
+            space += _get_dir_size(entry.path)
+        else:
+            space += entry.stat(follow_symlinks=False).st_size
+    return space
+
+
+@_lock
+def GetStats(path: str) -> tuple:
+    path = _convert_path(path)
+    return _get_dir_size(path), ospath.getatime(path), ospath.getctime(path), ospath.getmtime(path)

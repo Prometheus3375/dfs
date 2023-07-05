@@ -235,7 +235,7 @@ def copy(sock: socket) -> ResultType:
 
 @_reg(Command_Flush)
 def flush(sock: socket) -> ResultType:
-    Logger.addHost(*sock.getpeername(), 'attempts flush storage')
+    Logger.addHost(*sock.getpeername(), 'attempts to flush storage')
     space = 0
     for ip in GetAliveServers():
         rcvd = CallNSP(ip, NSP.flush)
@@ -246,4 +246,29 @@ def flush(sock: socket) -> ResultType:
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has flushed storage')
     SendULong(sock, space)
+    return Result_Success
+
+
+@_reg(Command_Info)
+def info(sock: socket) -> ResultType:
+    path = RecvStr(sock)
+    Logger.addHost(*sock.getpeername(), 'attempts to get stats of \'%s\'' % path + Mes_UpdateLocal)
+    if path not in Actual:
+        SendResponse(sock, '\'%s\' does not exist on remote' % path)
+        return Result_Denied
+    # Check if file
+    if _is_dir(sock, path):
+        return Result_Denied
+    # Exists
+    stats = None
+    for ip in GetASWithPath(path):
+        stats = CallNSP(ip, NSP.info, path)
+        if stats: break
+    if stats is None:
+        SendResponse(sock, '\'%s\' does not have stats' % path)
+        return Result_Denied
+    # All OK, response
+    Logger.addHost(*sock.getpeername(), 'has got stats of \'%s\'' % path)
+    SendResponse(sock, SUCCESS)
+    SendStr(sock, stats)
     return Result_Success

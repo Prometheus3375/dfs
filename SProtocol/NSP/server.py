@@ -123,3 +123,11 @@ def flush(sock: socket, log: str) -> int:
     res = RecvULong(sock)
     Logger.add(log + ' - success')
     return res
+
+
+@_cmd(Cmd_Info)
+def info(sock: socket, log: str, path: str) -> str:
+    SendStr(sock, path)
+    res = RecvStr(sock)
+    Logger.add(log + ' - success')
+    return res

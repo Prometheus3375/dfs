@@ -110,3 +110,14 @@ def flush(sock: socket):
     space = FS.GetFreeSpace()
     Logger.addHost(*sock.getpeername(), 'has flushed file system')
     SendULong(sock, space)
+
+
+@_reg(Cmd_Info)
+def info(sock: socket):
+    path = RecvStr(sock)
+    Logger.addHost(*sock.getpeername(), 'attempts to get stats of \'%s\'' % path)
+    stats = FS.GetStats(path)
+    stats = [str(st) for st in stats]
+    stats = InfoSeparator.join(stats)
+    Logger.addHost(*sock.getpeername(), 'has got stats of \'%s\'' % path)
+    SendStr(sock, stats)

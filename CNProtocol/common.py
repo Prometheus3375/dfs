@@ -17,6 +17,7 @@ Command_Upload = RemoteCommands('upload')
 Command_Download = RemoteCommands('download')
 
 Update_LineSeparator = '\n'
+InfoSeparator = '\n'
 
 ResponseType = str
 SUCCESS = ''

@@ -18,6 +18,8 @@ Cmd_Download = Commands('download')
 Cmd_Replicate = Commands('replicate')
 Cmd_Fix = Commands('fix')
 
+InfoSeparator = '\n'
+
 ResponseType = str
 SUCCESS = ''
 

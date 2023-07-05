@@ -63,10 +63,12 @@ def flush(sock: socket) -> int:
 
 
 @_cmd(Command_Info)
-def info(sock: socket, what: str) -> ResponseType:
+def info(sock: socket, what: str):
     SendStr(sock, what)
-    # TODO
-    return RecvResponse(sock)
+    re = RecvResponse(sock)
+    if re == SUCCESS:
+        return RecvStr(sock).strip().split(InfoSeparator)
+    return re
 
 
 @_cmd(Command_Upload)
