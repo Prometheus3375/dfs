@@ -13,7 +13,7 @@ Error_SocketClosed = Errors('The remote host has closed the connection')
 Error_Other = Errors.top + 1
 
 ChunkSize = 1024  # in bytes
-SleepTime = 0.001  # in seconds
+SleepTime = 0.005  # in seconds
 
 IntFormat = '!i'
 IntSize = calcsize(IntFormat)
