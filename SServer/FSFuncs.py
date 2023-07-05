@@ -6,7 +6,7 @@ from threading import RLock
 from time import sleep
 
 root_dir = 'storage'
-sep = ospath.altsep
+sep = '/'
 _locker = RLock()
 
 
