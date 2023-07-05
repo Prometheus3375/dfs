@@ -134,7 +134,7 @@ Client is running, you may send commands to name server. Type `exit` to exit.
 All necessary usage information is described in installation section.
 
 ### Client
-Here is the list o all available commands.
+Here is the list of all available commands.
 1. `exit` - shutdowns client.
 2. `cd <path>` - changes current working directory in local virtual file system (VFS).
 3. `ls [<path>]` - lists contents of current working directory. If path argument is given, lists contents of specified directory.
@@ -157,6 +157,8 @@ For next commands connection to storage servers is required. Necessary storage s
 
 1. `upload <local file> <path in DFS>` - uploads a file to DFS in specified path.
 2. `upload <file in DFS> <local path>` - downloads specified file from DFS.
+
+**Be aware that all DFS paths are converted to lower case.**
 
 ## 3. Component diagram
 
