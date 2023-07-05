@@ -38,8 +38,7 @@ class Node:
         self.root._remove(self)
 
     def raiseIfFile(self):
-        if self.isFile:
-            raise VFSException(f'\'%s\' is not a directory' % self.getPath())
+        raise VFSException(f'\'%s\' is not a directory' % self.getPath())
 
     def rename(self, newname: str):
         if self is Root:
@@ -96,6 +95,9 @@ class Dir(Node):
         super().__init__(name, True, root)
         self.entities = {}
 
+    def raiseIfFile(self):
+        pass
+
     def __contains__(self, name: str) -> bool:
         return name == '.' or name == '..' or name in self.entities
 
@@ -121,6 +123,9 @@ class Dir(Node):
         for i in range(len(subs)):
             subs += subs[i].allSubdirs()
         return subs
+
+    def hasInSubnodes(self, node):
+        return node in self.allSubnodes()
 
     def _add(self, node: Node):
         self.entities[node.name] = node
@@ -159,10 +164,11 @@ class Dir(Node):
 
 
 def format():
-    global Root, CWD, RootPath
+    global Root, CWD, RootPath, CWDPath
     Root = Node.new(Separator, True)
     CWD = Root
     RootPath = Root.getPath()
+    CWDPath = RootPath
 
 
 def init(paths: list, types: list):
@@ -174,29 +180,28 @@ Separator = '/'
 format()
 _bad_chars = '\\', ':', '*', '?', '"', '<', '>', '|'
 BadPathChars = *_bad_chars, Separator * 2
-BadNameChars = *_bad_chars, Separator, '.', '..'
+BadNameChars = *_bad_chars, Separator
 
 
-def badPath(path: str) -> bool:
+def raiseIfBadPath(path: str):
     for c in BadPathChars:
         if c in path:
-            return True
-    return False
+            raise VFSException(f'\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
+                               % (path, '\', \''.join(BadPathChars)))
 
 
-def badName(name: str) -> bool:
+def raiseIfBadName(name: str):
+    if name == '.' or name == '..':
+        raise VFSException(f'\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
     for c in BadNameChars:
         if c in name:
-            return True
-    return False
-
-
-def isroot(path: str) -> bool:
-    return path == RootPath
+            raise VFSException(f'\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
+                               % (name, '\', \''.join(BadNameChars)))
 
 
 def parsePath(path: str) -> tuple:
-    if isroot(path):
+    raiseIfBadPath(path)
+    if path == RootPath:
         cwd = Root
         path = '.'
     elif path[0] == Separator:
@@ -209,10 +214,10 @@ def parsePath(path: str) -> tuple:
 
 
 def cwdPath() -> str:
-    return CWD.getPath()
+    return CWDPath
 
 
-def nodeat(path: str) -> Node:
+def _nodeat(path: str) -> Node:
     cwd, nodes = parsePath(path)
     for name in nodes:
         if cwd.isDir and name in cwd:
@@ -222,80 +227,93 @@ def nodeat(path: str) -> Node:
     return cwd
 
 
-def isempty(path: str) -> bool:
+def nodeat(path: str) -> Node:
+    node = _nodeat(path)
+    if node:
+        return node
+    raise VFSException(f'\'%s\' does not exist' % path)
+
+
+def dirat(path: str) -> Dir:
     node = nodeat(path)
+    node.raiseIfFile()
+    return node
+
+
+def absPath(path: str) -> str:
+    return nodeat(path).getPath()
+
+
+def isparent(path: str) -> bool:
+    d = dirat(path)
+    return d.hasInSubnodes(CWD)
+
+
+def isroot(path: str) -> bool:
+    return _nodeat(path) is Root
+
+
+def isempty(path: str) -> bool:
+    node = _nodeat(path)
     if node and node.isDir:
         return node.isEmpty()
     return True
 
 
 def isfile(path: str) -> bool:
-    node = nodeat(path)
+    node = _nodeat(path)
     if node:
         return node.isFile
     return False
 
 
 def isdir(path: str) -> bool:
-    node = nodeat(path)
+    node = _nodeat(path)
     if node:
         return node.isDir
     return False
 
 
 def exists(path: str) -> bool:
-    node = nodeat(path)
+    node = _nodeat(path)
     if node:
         return True
     return False
 
 
-def absPath(path: str) -> str:
-    node = nodeat(path)
-    if node:
-        return node.getPath()
-    return RootPath
-
-
-def isparent(path: str) -> bool:
-    return cwdPath().startswith(absPath(path))
-
-
 def add(path: str, isDir: bool):
     cwd, nodes = parsePath(path)
+    last = len(nodes) - 1
+    lastname = nodes[last]
+    raiseIfBadName(lastname)
     # >>> first, last = '1/1'.split(/)
     # >>> first is last
     # True
     # >>> first, last = 'some/some'.split(/)
     # >>> first is last
     # False
-    last = len(nodes) - 1
+    # It is not possible to use (a is b) check here
     for i in range(last):
         name = nodes[i]
         if not (name in cwd):
             cwd.add(name, True)
         cwd = cwd[name]
         cwd.raiseIfFile()
-    cwd.add(nodes[last], isDir)
+    cwd.add(lastname, isDir)
 
 
 def remove(path: str):
-    node = nodeat(path)
-    if node:
-        node.delete()
-    else:
-        raise VFSException(f'\'%s\' does not exist' % path)
+    nodeat(path).delete()
 
 
 def rename(what: str, name: str):
     node = nodeat(what)
-    if node:
-        node.rename(name)
-    else:
-        raise VFSException(f'\'%s\' does not exist' % what)
+    raiseIfBadName(name)
+    node.rename(name)
 
 
-def dirat(path: str) -> Dir:
+def dirat_cin(path: str) -> Dir:
+    # cin = create if necessary
     cwd, nodes = parsePath(path)
     for name in nodes:
         if not (name in cwd):
@@ -307,44 +325,33 @@ def dirat(path: str) -> Dir:
 
 def move(what: str, to: str):
     node = nodeat(what)
-    if node:
-        newroot = dirat(to)
-        node.move(newroot)
-    else:
-        raise VFSException(f'\'%s\' does not exist' % what)
+    newroot = dirat_cin(to)
+    node.move(newroot)
 
 
 def copy(what: str, to: str):
     node = nodeat(what)
-    if node:
-        newroot = dirat(to)
-        node.copy(newroot)
-    else:
-        raise VFSException(f'\'%s\' does not exist' % what)
+    newroot = dirat_cin(to)
+    node.copy(newroot)
 
 
 def cd(path: str):
     node = nodeat(path)
-    if node:
-        node.raiseIfFile()
-        global CWD
-        CWD = node
-    else:
-        raise VFSException(f'\'%s\' does not exist' % path)
+    node.raiseIfFile()
+    global CWD, CWDPath
+    CWD = node
+    CWDPath = CWD.getPath()
 
 
 def ls(path) -> tuple:
-    node = nodeat(path)
-    if node:
-        node.raiseIfFile()
-        entities = node.entities.values()
-        names = []
-        types = []
-        for node in entities:
-            names.append(node.name)
-            types.append(node.isFile)
-        return names, types
-    raise VFSException(f'\'%s\' does not exist' % path)
+    node = dirat(path)
+    entities = node.entities.values()
+    names = []
+    types = []
+    for node in entities:
+        names.append(node.name)
+        types.append(node.isFile)
+    return names, types
 
 
 def walk() -> list:
