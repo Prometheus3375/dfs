@@ -1,6 +1,6 @@
 import functools
 from ipaddress import IPv4Address, AddressValueError, IPv4Network
-from math import ceil
+from math import ceil, floor
 from socket import socket, error as _error, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, gethostbyname
 from struct import pack, unpack, calcsize
 
@@ -130,17 +130,29 @@ def _sendSizedChunk(sock: socket, chunk: bytes):
     _sendChunk(sock, chunk)
 
 
-def SendBytes(sock: socket, bts: bytes):
-    n = len(bts)
+def print_progress(percent: float):
+    percent = floor(percent * 100.)
+    out = '\rProgress - %d%% [' % percent + '#' * percent + '.' * (100 - percent) + ']'
+    print(out, end='')
+
+
+def SendBytes(sock: socket, bts: bytes, progress: bool = False):
+    size = len(bts)
     # Send size
-    SendULong(sock, n)
-    if n > 0:
+    SendULong(sock, size)
+    if progress:
+        print_progress(0)
+        sent = 0
+    if size > 0:
         # Get number of chunks
-        chunks = ceil(n / ChunkSize)
+        chunks = ceil(size / ChunkSize)
         # Send all chunks
         for i in range(chunks):
             this = bts[i * ChunkSize:(i + 1) * ChunkSize]
             _sendChunk(sock, this)
+            if progress:
+                sent += len(this)
+                print_progress(sent / size)
 
 
 def SendStr(sock: socket, s: str):

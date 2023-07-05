@@ -1,10 +1,9 @@
 import functools
-import os.path as ospath
-from math import ceil, floor
+from math import floor
 
 from Common.Constants import StorageServerPort
 from Common.JobEx import SendJob
-from Common.Socket import connection, SendBytes, RecvBytes, SendULong, RecvULong
+from Common.Socket import connection, SendBytes, RecvBytes, RecvULong
 from SProtocol.CSP.common import *
 from SProtocol.common import SendWMI, Client
 
@@ -28,22 +27,9 @@ def print_progress(percent: float):
 
 @_cmd
 def upload(sock: socket, path: str) -> bool:
-    size = ospath.getsize(path)
-    chunks = ceil(size / FileChunkSize)
-    # Send chunk number
-    RecvSignal(sock)
-    SendULong(sock, chunks)
-    processed = 0
-    print_progress(processed / size)
     with open(path, 'rb') as f:
-        bts = f.read(FileChunkSize)
-        while bts:
-            RecvSignal(sock)
-            SendBytes(sock, bts)
-            processed += len(bts)
-            print_progress(processed / size)
-            bts = f.read(FileChunkSize)
-    print()  # new line
+        bts = f.read()
+    SendBytes(sock, bts, True)
     return RecvResponse(sock) == SUCCESS
 
 

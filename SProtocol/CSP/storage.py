@@ -5,7 +5,7 @@ import SServer.FSFuncs as FS
 import SServer.Jobs as Jobs
 from Common.JobEx import RecvJob
 from Common.Logger import Logger as _loggerclass
-from Common.Socket import RecvULong, RecvBytes, SendULong, SendBytes
+from Common.Socket import RecvBytes, SendULong, SendBytes
 from SProtocol.CSP.common import *
 
 Logger: _loggerclass = ...
@@ -36,14 +36,12 @@ def ServeClient(sock: socket):
 def upload(sock: socket, path: str):
     Logger.addHost(*sock.getpeername(), 'attempts to upload a file to \'%s\'' % path)
     validpath = FS.CreateFile(path)
-    # Get chunk number
-    SendSignal(sock)
-    chunks = RecvULong(sock)
+    bts = RecvBytes(sock)
+    chunks = ceil(len(bts) / FileChunkSize)
     for i in range(chunks):
         fpath = ospath.join(validpath, str(i))
         with open(fpath, 'wb') as f:
-            SendSignal(sock)
-            f.write(RecvBytes(sock))
+            f.write(bts[i * FileChunkSize: (i + 1) * FileChunkSize])
     Logger.addHost(*sock.getpeername(), 'has uploaded file \'%s\'' % path)
     SendResponse(sock, SUCCESS)
 

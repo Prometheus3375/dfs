@@ -60,4 +60,5 @@ if __name__ == '__main__':
     except Exception as e:
         Logger.addError('An error occurred', e)
     finally:
-        MainSocket.close()
+        if isinstance(MainSocket, socket):
+            MainSocket.close()

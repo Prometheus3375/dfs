@@ -80,4 +80,5 @@ if __name__ == '__main__':
     finally:
         SaveActual()
         Storage.SaveStorageData()
-        ClientSocket.close()
+        if isinstance(ClientSocket, socket):
+            ClientSocket.close()
