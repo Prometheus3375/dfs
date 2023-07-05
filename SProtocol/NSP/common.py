@@ -18,7 +18,7 @@ Cmd_Download = Commands('download')
 Cmd_PrepareReplicate = Commands('prep replicate')
 Cmd_DoReplicate = Commands('do replicate')
 
-LocateTimeout = 0.1  # in seconds
+LocateTimeout = 0.01  # in seconds
 InfoSeparator = '\n'
 LoadTimeout = 60  # in seconds
 PathSeparator = '\n'

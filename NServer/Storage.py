@@ -25,7 +25,7 @@ Statuses = Enum()
 Status_Alive = Statuses()
 Status_Dead = Statuses()
 Status_Fixing = Statuses()
-StorageData_BackUp = 'storage backup/'
+StorageData_BackUp = 'storage_backup/'
 if not os.path.exists(StorageData_BackUp):
     os.mkdir(StorageData_BackUp)
 
