@@ -1,5 +1,4 @@
 import os.path as ospath
-from _socket import SHUT_WR
 from math import ceil
 
 import SServer.FSFuncs as FS
@@ -58,5 +57,4 @@ def replicate(sock: socket, paths: list):
         # Wait till other storage will be ready
         RecvSignal(sock)
         Logger.addHost(*sock.getpeername(), 'has replicated file \'%s\'' % path)
-    sock.shutdown(SHUT_WR)
     Logger.addHost(*sock.getpeername(), 'has replicated %d file(s) ' % n)

@@ -1,5 +1,4 @@
 import os.path as ospath
-from _socket import SHUT_WR
 from math import ceil
 
 import SServer.FSFuncs as FS
@@ -70,4 +69,3 @@ def download(sock: socket, path: str):
             bts.append(f.read())
     # Send everything
     SendBytes(sock, b''.join(bts))
-    sock.shutdown(SHUT_WR)

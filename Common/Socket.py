@@ -146,14 +146,6 @@ def RecvULong(sock: socket) -> int:
     return unpack(ULongFormat, result)[0]
 
 
-def _sendChunk(sock: socket, chunk: bytes):
-    _sendall(sock, chunk)
-
-
-def RecvChunk(sock: socket) -> bytes:
-    return _recv(sock, ChunkSize)
-
-
 def SendBytes(sock: socket, bts: bytes):
     size = len(bts)
     # Send size
@@ -164,27 +156,20 @@ def SendBytes(sock: socket, bts: bytes):
         # Send all chunks
         for i in range(chunks):
             this = bts[i * ChunkSize:(i + 1) * ChunkSize]
-            _sendChunk(sock, this)
+            _sendall(sock, this)
 
 
 def RecvBytes(sock: socket) -> bytes:
     # Get number of bytes
     size = RecvULong(sock)
-    print(size)
     result = []
     if size > 0:
-        # Get number of chunks
-        chunks = ceil(size / ChunkSize)
-        # Get all chunks except last
-        for i in range(chunks - 1):
-            this = RecvChunk(sock)
+        # Receive until everything will be received
+        recved = 0
+        while recved < size:
+            this = _recv(sock, min(ChunkSize, size - recved))
             result.append(this)
-            print(len(this), ChunkSize)
-        # Last chunk will have different size, calculate it
-        this = _recv(sock, size - (chunks - 1) * ChunkSize)
-        print(len(this), size - (chunks - 1) * ChunkSize)
-        result.append(this)
-    print(len(b''.join(result)))
+            recved += len(this)
     return b''.join(result)
 
 
@@ -214,7 +199,7 @@ def SendBytesProgress(sock: socket, bts: bytes):
         # Send all chunks
         for i in range(chunks):
             this = bts[i * ChunkSize:(i + 1) * ChunkSize]
-            _sendChunk(sock, this)
+            _sendall(sock, this)
             sent += len(this)
             print_progress(sent / size)
         print()  # new line after line with '\r'
@@ -225,20 +210,13 @@ def RecvBytesProgress(sock: socket) -> bytes:
     size = RecvULong(sock)
     result = []
     if size > 0:
+        # Receive until everything will be received
         recved = 0
         print_progress(0.)
-        # Get number of chunks
-        chunks = ceil(size / ChunkSize)
-        # Get all chunks except last
-        for i in range(chunks - 1):
-            this = RecvChunk(sock)
+        while recved < size:
+            this = _recv(sock, min(ChunkSize, size - recved))
             result.append(this)
             recved += len(this)
             print_progress(recved / size)
-        # Last chunk will have different size, calculate it
-        this = _recv(sock, size - (chunks - 1) * ChunkSize)
-        result.append(this)
-        recved += len(this)
-        print_progress(recved / size)
         print()  # new line after line with '\r'
     return b''.join(result)
