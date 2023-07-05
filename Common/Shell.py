@@ -7,7 +7,7 @@ from .Misc import num2order
 User = str(getpass.getuser())
 CWD = str(os.getcwd())
 if platform.system() == 'Windows':
-    Prompt = CWD + '>'
+    Prompt = CWD + '> '
 else:
     Prompt = User + ':' + CWD + '$ '
 Commands = {}
