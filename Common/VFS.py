@@ -1,8 +1,11 @@
+from Common.Misc import MyException
+
 Separator = '/'
 RootName = Separator
 _bad_chars = '\\', ':', '*', '?', '"', '<', '>', '|', '\t'
 BadPathChars = Separator * 2, *_bad_chars
 BadNameChars = Separator, *_bad_chars
+Walk_PathTypeSep = '\t'
 
 
 def raiseIfBadPath(path: str):
@@ -21,13 +24,8 @@ def raiseIfBadName(name: str):
                                % (name, '\', \''.join(BadNameChars)))
 
 
-class VFSException(Exception):
-    def __init__(self, mes: str):
-        super().__init__()
-        self.message = mes
-
-    def __str__(self):
-        return self.message
+class VFSException(MyException):
+    pass
 
 
 class Node:
@@ -392,4 +390,20 @@ class FileSystem:
         return [node.getPath() for node in self.Root.walk()]
 
     def walkWithTypes(self) -> list:
-        return [(node.getPath(), node.isDir) for node in self.Root.walk()]
+        return [node.getPath() + Walk_PathTypeSep + str(node.isDir) for node in self.Root.walk()]
+
+    def fillFromLines(self, lines: list, skip_malformed: bool = True):
+        check = not skip_malformed
+        pts = []
+        for line in lines:
+            t = line.strip().split(Walk_PathTypeSep)
+            if len(t) == 2:
+                path, typ = t
+                isDir = typ == 'True'
+                if isDir or typ == 'False':
+                    pts.append((path, isDir))
+                elif check:
+                    raise ValueError('Line \'%s\' has invalid node type' % line)
+            elif check:
+                raise ValueError('Line \'%s\' is malformed' % line)
+        self.fill(pts)

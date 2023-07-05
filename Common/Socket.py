@@ -1,88 +1,119 @@
-from socket import socket
+import functools
 from math import ceil
+from socket import socket, AF_INET, SOCK_STREAM, error as _error
 from struct import *
+
+from Common.Misc import Enum
+from Common.Misc import MyException
+
+Errors = Enum()
+Error_Other = Errors.new()
+Error_Connect = Errors.new()
+Error_Send = Errors.new()
+Error_Recv = Errors.new()
+
+
+class SocketError(MyException):
+    def __init__(self, mes: str = '', code: int = Error_Other):
+        super(SocketError, self).__init__(mes)
+        self.err = code
+
 
 ChunkSize = 1024  # in bytes
 
-'''
-All send functions return False on success, True on fail.
-'''
+
+def connect(func):
+    @functools.wraps(func)
+    def wrapper(host: tuple, *args):
+        with socket(AF_INET, SOCK_STREAM) as sock:
+            try:
+                sock.connect(host)
+            except _error:
+                raise SocketError('Failed to connect to %s:%d' % host, Error_Connect)
+            wrapper.sock = sock
+            return func(sock, *args)
+
+    return wrapper
 
 
-def SendInt(sock: socket, i: int) -> bool:
-    return not (sock.sendall(pack('!i', i)) is None)
+def _sendall(sock: socket, bts: bytes):
+    if not (sock.sendall(bts) is None):
+        raise SocketError('Send to %s:%d failed' % sock.getpeername(), Error_Send)
 
 
-def _sendChunk(sock: socket, chunk: bytes) -> bool:
-    return not (sock.sendall(chunk) is None)
+def SendInt(sock: socket, i: int):
+    _sendall(sock, pack('!i', i))
 
 
-def _sendSizedChunk(sock: socket, chunk: bytes) -> bool:
-    if SendInt(sock, len(chunk)):
-        return True
-    return not (sock.sendall(chunk) is None)
+def _sendChunk(sock: socket, chunk: bytes):
+    _sendall(sock, chunk)
 
 
-def SendBytes(sock: socket, bts: bytes) -> bool:
+def SendChunk(sock: socket, chunk: bytes):
+    if len(chunk) == ChunkSize:
+        _sendChunk(sock, chunk)
+    raise SocketError('Size of passed chunk must equal %d, '
+                      'for bigger sizes use SendBytes, for smaller use SendSizedChunk' % ChunkSize)
+
+
+def _sendSizedChunk(sock: socket, chunk: bytes):
+    SendInt(sock, len(chunk))
+    _sendChunk(sock, chunk)
+
+
+def SendSizedChunk(sock: socket, chunk: bytes):
+    if len(chunk) <= ChunkSize:
+        _sendSizedChunk(sock, chunk)
+    raise SocketError('Size of passed chunk must be not bigger than %d, '
+                      'for bigger sizes use SendBytes' % ChunkSize)
+
+
+def SendBytes(sock: socket, bts: bytes):
     n = ceil(len(bts) / ChunkSize)
-    if n <= 0: return False  # False, because no send error
     # Send number of chunks
-    if SendInt(sock, n):
-        return True
-    # Send first n - 1 chunks
-    for i in range(n - 1):
-        this = bts[i * ChunkSize:(i + 1) * ChunkSize]
-        if _sendChunk(sock, this):
-            return True
-    # Send last chunk
-    last = bts[(n - 1) * ChunkSize:]
-    if _sendSizedChunk(sock, last):
-        return True
-    return False
+    SendInt(sock, n)
+    if n > 0:
+        # Send first n - 1 chunks
+        for i in range(n - 1):
+            this = bts[i * ChunkSize:(i + 1) * ChunkSize]
+            _sendChunk(sock, this)
+        # Send last chunk
+        last = bts[(n - 1) * ChunkSize:]
+        _sendSizedChunk(sock, last)
 
 
-def SendStr(sock: socket, s: str) -> bool:
+def SendStr(sock: socket, s: str):
     return SendBytes(sock, s.encode())
 
 
-class RecvError(Exception):
-    def __init__(self, mes: str = 'No bytes received'):
-        self.mes = mes
-
-    def __str__(self):
-        return self.mes
-
-
-def _checkBytes(bts: bytes):
-    if not bts:
-        raise RecvError()
+def _recv(sock: socket, bufsize: int) -> bytes:
+    result = sock.recv(bufsize)
+    if not result:
+        raise SocketError('No bytes received from %s:%d' % sock.getpeername(), Error_Recv)
+    return result
 
 
 def RecvInt(sock: socket) -> int:
-    result = sock.recv(4)
-    _checkBytes(result)
+    result = _recv(sock, 4)
     return unpack('!i', result)[0]
 
 
 def RecvChunk(sock: socket) -> bytes:
-    result = sock.recv(ChunkSize)
-    _checkBytes(result)
-    return result
+    return _recv(sock, ChunkSize)
 
 
 def RecvSizedChunk(sock: socket) -> bytes:
     size = RecvInt(sock)
-    result = sock.recv(size)
-    _checkBytes(result)
-    return result
+    return _recv(sock, size)
 
 
 def RecvBytes(sock: socket) -> bytes:
     n = RecvInt(sock)
     result = b''
-    for i in range(n - 1):
-        result += RecvChunk(sock)
-    result += RecvSizedChunk(sock)
+    if n > 0:
+        for i in range(n - 1):
+            result += RecvChunk(sock)
+        result += RecvSizedChunk(sock)
     return result
 
 

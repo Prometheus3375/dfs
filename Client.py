@@ -1,6 +1,11 @@
-from Common.Shell import shell, Command, User
-from ipaddress import IPv4Address, AddressValueError
 import socket
+from ipaddress import IPv4Address, AddressValueError
+
+import CNSProtocol.сlient as NSP
+from CNSProtocol import CNSError
+from Common import *
+from Common.Shell import shell, Command, User
+from Common.Socket import SocketError, Error_Other
 from Common.VFS import FileSystem, VFSException
 
 FS = FileSystem()
@@ -18,6 +23,7 @@ def CallVFS(func, args):
     return False
 
 
+# region No connect
 def changeCWD(path: str):
     CallVFS(FS.cd, (path,))
 
@@ -43,6 +49,21 @@ def listDir(path: str):
 def absPath(path: str):
     if not CallVFS(FS.absPath, (path,)):
         print(CallVFSOutput)
+
+
+# endregion
+# region With connect
+def update():
+    try:
+        paths_types = NSP.update(Server)
+        FS.fillFromLines(paths_types)
+    except SocketError as e:
+        if e.err == Error_Other:
+            print('Unknown error occurred: ' + str(e))
+        else:
+            print('Failed to connect to server')
+    except CNSError as e:
+        print(e)
 
 
 def flush():
@@ -105,6 +126,9 @@ def copy(what: str, to: str):
         return
 
 
+# endregion
+
+
 Command.zero('exit', lambda: exit(0))
 Command.one('cd', str, changeCWD)
 Command.zero('ls', lambda: listDir('.'))
@@ -112,6 +136,7 @@ Command.one('ls', str, listDir)
 Command.one('abs', str, absPath)
 Command.zero('walk', lambda: print(*FS.walk(), sep='\n'))
 
+Command.zero('update', update)
 Command.zero('flush', lambda: flush)
 Command.one('mkfile', str, lambda path: create(path, False))
 Command.one('mkdir', str, lambda path: create(path, True))
@@ -120,7 +145,6 @@ Command.single('re', 2, (str, str), rename)
 Command.single('mv', 2, (str, str), move)
 Command.single('cp', 2, (str, str), copy)
 
-Command.zero('update', lambda: None)
 Command.single('download', 2, (str, str), lambda virt, real: None)
 Command.single('upload', 2, (str, str), lambda real, virt: None)
 
@@ -131,7 +155,7 @@ def prompt() -> str:
 
 def main():
     while True:
-        ip, port = input('Input DFS server IP address and port: ').strip().split(' ')
+        ip = input('Input DFS server IP address or domain name: ').strip()
         # Check IP or domain
         try:
             IPv4Address(ip)
@@ -141,31 +165,18 @@ def main():
             except socket.error:
                 print('Error: \'%s\' - no such IP or domain' % ip)
                 continue
-        # Check port
-        try:
-            port = int(port)
-        except ValueError:
-            print('Error: \'%s\' is invalid port number' % port)
-            continue
         break
-    host = ip + ':' + str(port)
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # Check connection
-        try:
-            s.connect((ip, port))
-        except socket.error:
-            print('Error: cannot connect to ' + host)
-            return
-        # Set socket
-        global Server
-        Server = s
-        # Start shell
-        shell(prompt)
+    global Server
+    Server = ip, NameServerPort
+    # Get VFS
+    update()
+    # Start shell
+    shell(prompt)
 
 
 if __name__ == '__main__':
     try:
-        # main()
-        shell(prompt)
+        main()
+        # shell(prompt)
     except KeyboardInterrupt:
         pass
