@@ -20,7 +20,7 @@ class Listener(Thread):
     def run(self):
         sock = self.sock
         try:
-            CNP.RecvCommand(sock)
+            CNP.ServeClient(sock)
         except SocketError as e:
             Logger.add('A socket error occurred during serving %s: ' % self.host + str(e))
         except CNP.CNPException as e:

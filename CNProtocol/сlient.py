@@ -1,17 +1,14 @@
+import functools
+
 from CNProtocol.common import *
-from Common.Socket import *
 
 
-def _send_cmd(sock: socket, cmd: int):
-    SendInt(sock, cmd)
-
-
-def _cmd(cmd: int):
+def _cmd(cmd: RCType):
     def __cmd(func):
         @functools.wraps(func)
         @connect
         def wrapper(sock: socket, *args):
-            _send_cmd(sock, cmd)
+            SendCommand(sock, cmd)
             return func(sock, *args)
 
         return wrapper
@@ -26,9 +23,13 @@ def update(sock: socket):
 
 
 @connect
-def create(sock: socket, path: str, isDir: bool):
-    _send_cmd(sock, Command_MKDir if isDir else Command_MKFile)
+def create(sock: socket, path: str, isDir: bool) -> ResponseType:
+    SendCommand(sock, Command_MKDir if isDir else Command_MKFile)
     SendStr(sock, path)
-    ans = RecvStr(sock)
-    if ans != SUCCESS:
-        raise CNPException(ans)
+    return RecvResponse(sock)
+
+
+@_cmd(Command_Remove)
+def remove(sock: socket, path: str) -> ResponseType:
+    SendStr(sock, path)
+    return RecvResponse(sock)

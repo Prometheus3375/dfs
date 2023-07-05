@@ -1,10 +1,10 @@
 from CNProtocol.common import *
-from Common.Socket import *
 from NServer.FileSystems import Actual, Pending
 from NameServer import Logger
 
 _cmd2func = {}
 Results = EnumCode()
+ResultType = int
 Result_Fail = Results('fail')
 Result_Success = Results('success')
 Result_Denied = Results('denied')
@@ -20,7 +20,7 @@ def _reg(id: int):
     return register
 
 
-def RecvCommand(sock: socket):
+def ServeClient(sock: socket):
     cmd = RecvInt(sock)
     if cmd in _cmd2func:
         # noinspection PyStringFormat
@@ -36,49 +36,71 @@ def RecvCommand(sock: socket):
 
 
 @_reg(Command_Update)
-def update(sock: socket) -> int:
+def update(sock: socket) -> ResultType:
     pts = Actual.walkWithTypes()
     SendStr(sock, '\n'.join(pts))
     return Result_Success
 
 
 def _cant_add_node(sock: socket, path: str) -> bool:
-    # noinspection PyStringFormat
     Logger.addHost(*sock.getpeername(), 'attempts to add \'%s\'' % path)
     if Actual.cantBeAdded(path):
-        SendStr(sock, '\'%s\' already exists on remote. Use \'update\' command to update local replica' % path)
+        SendResponse(sock, '\'%s\' already exists on remote' % path)
         return True
     if Pending.cantBeAdded(path):
-        SendStr(sock, '\'%s\' is adding by other user, wait several minutes' % path)
+        SendResponse(sock, '\'%s\' is being added by other user' % path)
         return True
     return False
 
 
-def _node_added(sock: socket, path: str) -> int:
-    # noinspection PyStringFormat
+def _node_added(sock: socket, path: str) -> ResultType:
     Logger.addHost(*sock.getpeername(), 'has added \'%s\'' % path)
-    SendStr(sock, SUCCESS)
+    SendResponse(sock, SUCCESS)
     return Result_Success
 
 
 @_reg(Command_MKFile)
-def mkfile(sock: socket) -> int:
+def mkfile(sock: socket) -> ResultType:
     path = RecvStr(sock)
     if _cant_add_node(sock, path):
         return Result_Denied
     node = Pending.add(path, False)
     # TODO: create job
-    # TODO: select 2 servers and create a file on them
+    # TODO: select 2 storage servers and create a file on them
     # TODO: if NSP error occur, select another server
     Actual.add(path, False)
     return _node_added(sock, path)
 
 
 @_reg(Command_MKDir)
-def mkfile(sock: socket):
+def mkfile(sock: socket) -> ResultType:
     path = RecvStr(sock)
     if _cant_add_node(sock, path):
         return Result_Denied
     Pending.add(path, True)
     Actual.add(path, True)
     return _node_added(sock, path)
+
+
+@_reg(Command_Remove)
+def remove(sock: socket) -> ResultType:
+    path = RecvStr(sock)
+    Logger.addHost(*sock.getpeername(), 'attempts to remove \'%s\'' % path)
+    # Check if path can be deleted
+    if not Actual.exists(path):
+        SendResponse(sock,
+                     '\'%s\' was already removed on remote' % path)
+        return Result_Denied
+    if not Pending.exists(path):
+        SendResponse(sock, '\'%s\' is being removed by other user' % path)
+        return Result_Denied
+    # Path can be deleted
+    # Remove node at pending
+    Pending.remove(path)
+    # TODO: gather all storage servers with path and delete on them
+    # All OK, remove on actual
+    Actual.remove(path)
+    # Add log and response
+    Logger.addHost(*sock.getpeername(), 'has removed \'%s\'' % path)
+    SendResponse(sock, SUCCESS)
+    return Result_Success

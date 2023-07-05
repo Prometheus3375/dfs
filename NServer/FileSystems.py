@@ -1,15 +1,9 @@
-from Common.ClassWithLock import CreateClassWithLock
 from Common.Constants import TEST
-from Common.VFS import FileSystem
+from Common.VFS import LockFS
 
-
-class FSWithLock(FileSystem): pass
-
-
-FSWithLock = CreateClassWithLock(FileSystem, FSWithLock)
-Actual = FSWithLock()
+Actual = LockFS()
 Actual_BackUp = 'ActualFS.txt'
-Pending = FSWithLock()
+Pending = LockFS()
 
 
 def SaveActual():

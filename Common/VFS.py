@@ -1,3 +1,4 @@
+from Common.ClassWithLock import CreateClassWithLock
 from Common.Misc import MyException
 
 Separator = '/'
@@ -346,9 +347,6 @@ class FileSystem:
                 cwd = cwd.add(name, True)
         return cwd.add(lastname, isDir)
 
-    def canBeRemoved(self, path: str) -> bool:
-        return self.exists(path)
-
     def remove(self, path: str) -> Node:
         node = self.nodeAt(path)
         node.delete()
@@ -420,3 +418,9 @@ class FileSystem:
             elif check:
                 raise ValueError('Line \'%s\' is malformed' % line)
         self.fill(pts)
+
+
+class LockFS(FileSystem): pass
+
+
+LockFS = CreateClassWithLock(FileSystem, LockFS)

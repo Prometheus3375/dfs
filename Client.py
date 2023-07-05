@@ -5,10 +5,10 @@ import CNProtocol.сlient as CNP
 from Common.Constants import *
 from Common.Shell import shell, Command, User
 from Common.Socket import SocketError, Error_Other
-from Common.VFS import FileSystem, VFSException, Node
+from Common.VFS import FileSystem, VFSException, Node, Dir
 
 FS = FileSystem()
-Server = ...  # is set in main
+Server = ...  # is set in SetServer
 CallVFSOutput = ...  # is set in CallVFS
 
 
@@ -66,8 +66,19 @@ def update():
         print(e)
 
 
-def flush():
-    FS.flush()
+def CallCNP(func, *args) -> bool:
+    """
+    :param func: function to call
+    :param args: additional arguments of function
+    :return: True if an error occurs, False otherwise
+    """
+    try:
+        re = func(Server, *args)
+        if re: print(re)
+        return False
+    except (CNP.CNPException, SocketError) as e:
+        print(e)
+        return True
 
 
 def create(path: str, isDir: bool):
@@ -76,12 +87,11 @@ def create(path: str, isDir: bool):
         return
     if CallVFS(FS.add, path, isDir):
         return
+    # All OK, call remote
     node: Node = CallVFSOutput
     path = node.getPath()
-    try:
-        CNP.create(Server, path, isDir)
-    except (CNP.CNPException, SocketError) as e:
-        print(e)
+    if CallCNP(CNP.create, path, isDir):
+        node.delete()
 
 
 def remove(path: str):
@@ -106,6 +116,10 @@ def remove(path: str):
     except VFSException as e:
         print(e)
         return
+    # All OK, call remote
+    if CallCNP(CNP.remove, path):
+        parent: Dir = node.parent
+        parent.add(node.name, node.isDir)
 
 
 def rename(what: str, name: str):
@@ -157,6 +171,10 @@ def copy(what: str, to: str):
         return
 
 
+def flush():
+    FS.flush()
+
+
 # endregion
 
 
@@ -168,7 +186,6 @@ Command.one('abs', str, absPath)
 Command.zero('walk', lambda: print(*FS.walk(), sep='\n'))
 
 Command.zero('update', update)
-Command.zero('flush', flush)
 Command.one('mkfile', str, lambda path: create(path, False))
 Command.one('mkdir', str, lambda path: create(path, True))
 Command.one('rm', str, remove)
@@ -177,6 +194,7 @@ Command.add('mv', 2, (str, str), move)
 Command.add('cp', 2, (str, str), copy)
 
 Command.one('info', str, lambda path: None)
+Command.zero('flush', flush)
 Command.add('download', 2, (str, str), lambda virt, real: None)
 Command.add('upload', 2, (str, str), lambda real, virt: None)
 
@@ -185,7 +203,7 @@ def prompt() -> str:
     return User + ':' + FS.CWDPath + '$ '
 
 
-def main():
+def SetServer():
     while True:
         ip = input('Input DFS server IP address or domain name: ').strip()
         # Check IP or domain
@@ -200,6 +218,11 @@ def main():
         break
     global Server
     Server = ip, NameServerClientPort
+
+
+def main():
+    # Get remote
+    SetServer()
     # Get VFS
     update()
     # Start shell
