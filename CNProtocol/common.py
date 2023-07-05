@@ -1,5 +1,5 @@
 from Common.Misc import EnumCode, MyException
-from Common.Socket import socket, SendInt, SendStr, RecvInt, RecvStr, connect
+from Common.Socket import socket, SendInt, SendStr, RecvInt, RecvStr
 
 RemoteCommands = EnumCode()
 RCType = int

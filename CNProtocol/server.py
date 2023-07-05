@@ -1,6 +1,20 @@
+import SProtocol.NSP.server as NSP
 from CNProtocol.common import *
+from Common import Logger as _loggerclass
+from Common.Constants import ReplicationFactor
+from Common.Socket import SocketError
+from Common.VFS import VFSException
 from NServer.FileSystems import Actual
-from NameServer import Logger
+from NServer.Storage import GetAliveServers
+
+# region Common
+Logger = ...
+
+
+def SetLogger(logger: _loggerclass):
+    global Logger
+    Logger = logger
+
 
 _cmd2func = {}
 Results = EnumCode()
@@ -22,6 +36,19 @@ def _reg(id: RCType):
     return register
 
 
+def CallNSP(ip: str, func, *args):
+    try:
+        return func(ip, *args)
+    except NSP.NSPException as e:
+        Logger.add('A protocol error occurred during connecting to storage %s: ' % ip + str(e))
+    except SocketError as e:
+        Logger.add('A socket error occurred during connecting to storage %s: ' % ip + str(e))
+    except VFSException as e:
+        Logger.add('A VFS error occurred during connecting to storage %s: ' % ip + str(e))
+    except Exception as e:
+        Logger.add('An unknown error occurred during connecting to storage %s: ' % ip + str(e))
+
+
 def ServeClient(sock: socket):
     cmd = RecvCommand(sock)
     if cmd in _cmd2func:
@@ -37,6 +64,7 @@ def ServeClient(sock: socket):
         raise CNPException('Invalid command passed from client %s:%d' % sock.getpeername())
 
 
+# endregion
 @_reg(Command_Update)
 def update(sock: socket) -> ResultType:
     pts = Actual.walkWithTypes()
@@ -44,6 +72,7 @@ def update(sock: socket) -> ResultType:
     return Result_Success
 
 
+# region make Node
 def _cant_add_node(sock: socket, path: str) -> bool:
     Logger.addHost(*sock.getpeername(), 'attempts to add \'%s\'' % path)
     if Actual.cantBeAdded(path):
@@ -63,9 +92,16 @@ def mkfile(sock: socket) -> ResultType:
     path = RecvStr(sock)
     if _cant_add_node(sock, path):
         return Result_Denied
-    # TODO: create job
-    # TODO: select 2 storage servers and create a file on them
-    # TODO: if NSP error occur, select another server
+    # Add file on ReplicationFactor servers
+    count = 0
+    for ip in GetAliveServers():
+        if CallNSP(ip, NSP.mkfile, path):
+            count += 1
+            if count == ReplicationFactor: break
+    # Response
+    if count == 0:
+        SendResponse(sock, '\'%s\' cannot be created on remote' % path)
+        return Result_Denied
     Actual.add(path, False)
     return _node_added(sock, path)
 
@@ -79,6 +115,7 @@ def mkdir(sock: socket) -> ResultType:
     return _node_added(sock, path)
 
 
+# endregion
 @_reg(Command_Remove)
 def remove(sock: socket) -> ResultType:
     path = RecvStr(sock)

@@ -1,12 +1,13 @@
 import functools
 
 from CNProtocol.common import *
+from Common.Socket import connection
 
 
 def _cmd(cmd: RCType):
     def __cmd(func):
         @functools.wraps(func)
-        @connect
+        @connection()
         def wrapper(sock: socket, *args):
             SendCommand(sock, cmd)
             return func(sock, *args)
@@ -22,7 +23,7 @@ def update(sock: socket):
     return paths_types.split(Update_LineSeparator)
 
 
-@connect
+@connection()
 def create(sock: socket, path: str, isDir: bool) -> ResponseType:
     SendCommand(sock, Command_MKDir if isDir else Command_MKFile)
     SendStr(sock, path)

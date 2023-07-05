@@ -1,6 +1,7 @@
 import functools
+from ipaddress import IPv4Address, AddressValueError, IPv4Network
 from math import ceil
-from socket import socket, error as _error, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
+from socket import socket, error as _error, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, gethostbyname
 from struct import pack, unpack, calcsize
 
 from Common.Misc import EnumCode, MyError
@@ -13,6 +14,8 @@ Error_Other = Errors.top + 1
 ChunkSize = 1024  # in bytes
 IntFormat = '!i'
 IntSize = calcsize(IntFormat)
+ULongFormat = '!Q'
+ULongSize = calcsize(ULongFormat)
 
 
 class SocketError(MyError):
@@ -20,18 +23,61 @@ class SocketError(MyError):
         super().__init__(Errors, err_code, msg)
 
 
-def connect(func):
-    @functools.wraps(func)
-    def wrapper(host: tuple, *args):
-        with socket(AF_INET, SOCK_STREAM) as sock:
-            try:
-                sock.connect(host)
-            except _error:
-                raise SocketError(Error_ConnectFailed)
-            wrapper.sock = sock
-            return func(sock, *args)
+def connection(ip: str = None, port: int = None):
+    def _connect(func):
+        def wrapper(host: tuple, *args):
+            with socket(AF_INET, SOCK_STREAM) as sock:
+                try:
+                    sock.connect(host)
+                except _error:
+                    raise SocketError(Error_ConnectFailed)
+                return func(sock, *args)
 
-    return wrapper
+        if ip is None and port is None:
+            @functools.wraps(func)
+            def w(host: tuple, *args):
+                return wrapper(host, *args)
+
+            return w
+        if ip is None:
+            @functools.wraps(func)
+            def w(ip: str, *args):
+                return wrapper((ip, port), *args)
+
+            return w
+        if port is None:
+            @functools.wraps(func)
+            def w(port: int, *args):
+                return wrapper((ip, port), *args)
+
+            return w
+
+        @functools.wraps(func)
+        def w(*args):
+            return wrapper((ip, port), *args)
+
+        return w
+
+    return _connect
+
+
+def CheckNet(net: str) -> str:
+    try:
+        IPv4Network(net)
+        return ''
+    except AddressValueError as e:
+        return str(e)
+
+
+def CheckIP(ip: str) -> str:
+    try:
+        IPv4Address(ip)
+    except AddressValueError:
+        try:
+            ip = gethostbyname(ip)
+        except _error:
+            return ''
+    return ip
 
 
 def BindAndListen(name: str, port: int) -> socket:
@@ -56,6 +102,10 @@ def _sendall(sock: socket, bts: bytes):
         raise SocketError(Error_Other, str(e))
     if result is not None:
         raise SocketError(Error_SocketClosed)
+
+
+def SendULong(sock: socket, i: int):
+    _sendall(sock, pack(ULongFormat, i))
 
 
 def SendInt(sock: socket, i: int):
@@ -102,6 +152,11 @@ def _recv(sock: socket, bufsize: int) -> bytes:
 def RecvInt(sock: socket) -> int:
     result = _recv(sock, IntSize)
     return unpack(IntFormat, result)[0]
+
+
+def RecvULong(sock: socket) -> int:
+    result = _recv(sock, ULongSize)
+    return unpack(ULongFormat, result)[0]
 
 
 def RecvChunk(sock: socket) -> bytes:

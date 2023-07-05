@@ -1,10 +1,7 @@
-import socket
-from ipaddress import IPv4Address, AddressValueError
-
 import CNProtocol.сlient as CNP
 from Common.Constants import *
 from Common.Shell import shell, Command, User
-from Common.Socket import SocketError, Error_Other
+from Common.Socket import SocketError, Error_Other, CheckIP
 from Common.VFS import FileSystem, VFSException, Node, Dir
 
 FS = FileSystem()
@@ -215,15 +212,9 @@ def SetServer():
     while True:
         ip = input('Input DFS server IP address or domain name: ').strip()
         # Check IP or domain
-        try:
-            IPv4Address(ip)
-        except AddressValueError:
-            try:
-                ip = socket.gethostbyname(ip)
-            except socket.error:
-                print('Error: \'%s\' - no such IP or domain' % ip)
-                continue
-        break
+        ip = CheckIP(ip)
+        if ip: break
+        print('Error: \'%s\' - no such IP or domain' % ip)
     global Server
     Server = ip, NameServerClientPort
 

@@ -338,6 +338,9 @@ class FileSystem:
             return node.isDir
         return False
 
+    def __contains__(self, path: str) -> bool:
+        return self.exists(path)
+
     def canBeAdded(self, path: str) -> bool:
         try:
             cwd, nodes = self.parsePath(path)
