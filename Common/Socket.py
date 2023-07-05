@@ -23,11 +23,12 @@ class SocketError(MyError):
         super().__init__(Errors, err_code, msg)
 
 
-def connection(ip: str = None, port: int = None):
+def connection(ip: str = None, port: int = None, timeout: float = None):
     def _connect(func):
         def wrapper(host: tuple, *args):
             with socket(AF_INET, SOCK_STREAM) as sock:
                 try:
+                    sock.settimeout(timeout)
                     sock.connect(host)
                 except _error:
                     raise SocketError(Error_ConnectFailed)

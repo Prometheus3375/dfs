@@ -4,6 +4,7 @@ from datetime import datetime
 from Common.ClassWithLock import CreateClassWithLock
 
 LogDateFormat = '%Y-%m-%d %H:%M:%S.%f'
+NameFormat = '_%Y-%m-%d_%H-%M-%S'
 
 
 class Logger:
@@ -13,7 +14,7 @@ class Logger:
         if save_old and os.path.exists(path):
             with open(path, 'r', encoding='utf-8') as old:
                 p, ext = os.path.splitext(path)
-                p = p + datetime.now().strftime(' %Y-%m-%d %H-%M-%S') + ext
+                p = p + datetime.now().strftime(NameFormat) + ext
                 with open(p, 'w', encoding='utf-8') as new:
                     new.write(old.read())
         # Clean logfile or create new

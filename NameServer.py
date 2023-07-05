@@ -78,6 +78,6 @@ if __name__ == '__main__':
     except Exception as e:
         Logger.add('An error occurred: ' + str(e))
     finally:
-        ClientSocket.close()
         SaveActual()
         Storage.SaveStorageData()
+        ClientSocket.close()

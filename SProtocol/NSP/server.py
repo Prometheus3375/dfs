@@ -28,10 +28,10 @@ def LogResponse(sock: socket, log: str) -> bool:
     return False
 
 
-def _cmd(cmd: CommandType):
+def _cmd(cmd: CommandType, timeout: float = None):
     def __cmd(func):
         @functools.wraps(func)
-        @connection(port=StorageServerPort)
+        @connection(port=StorageServerPort, timeout=timeout)
         def wrapper(sock: socket, *args):
             SendWMI(sock, NameServer)
             SendCommand(sock, cmd)
@@ -44,7 +44,7 @@ def _cmd(cmd: CommandType):
     return __cmd
 
 
-@_cmd(Cmd_Locate)
+@_cmd(Cmd_Locate, LocateTimeout)
 def locate(sock: socket, log: str) -> tuple:
     pubip = RecvStr(sock)
     space = RecvULong(sock)
