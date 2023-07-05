@@ -116,4 +116,4 @@ class Command:
                     print(f'Type of the %s argument must be %s' % (num2order(i + 1), types[i].__name__))
                     return
         # Run command function
-        self.funcs[l](args)
+        self.funcs[l](*args)

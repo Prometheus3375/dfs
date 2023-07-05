@@ -32,13 +32,16 @@ class Node:
             node = node.root
         return Root.name + path
 
+    def raiseIfFile(self):
+        raise VFSException(f'\'%s\' is not a directory' % self.getPath())
+
+    def isRoot(self):
+        return self is Root
+
     def delete(self):
         if self is Root:
             raise VFSException('Root directory cannot be removed')
         self.root._remove(self)
-
-    def raiseIfFile(self):
-        raise VFSException(f'\'%s\' is not a directory' % self.getPath())
 
     def rename(self, newname: str):
         if self is Root:
@@ -127,6 +130,12 @@ class Dir(Node):
     def hasInSubnodes(self, node):
         return node in self.allSubnodes()
 
+    def hasInSubdirs(self, node):
+        return node in self.allSubdirs()
+
+    def isCWDParent(self):
+        return self is CWD or CWD in self.allSubdirs()
+
     def _add(self, node: Node):
         self.entities[node.name] = node
 
@@ -178,9 +187,9 @@ def init(paths: list, types: list):
 
 Separator = '/'
 format()
-_bad_chars = '\\', ':', '*', '?', '"', '<', '>', '|'
-BadPathChars = *_bad_chars, Separator * 2
-BadNameChars = *_bad_chars, Separator
+_bad_chars = '\\', ':', '*', '?', '"', '<', '>', '|', '\t'
+BadPathChars = Separator * 2, *_bad_chars
+BadNameChars = Separator, *_bad_chars
 
 
 def raiseIfBadPath(path: str):
@@ -240,13 +249,21 @@ def dirat(path: str) -> Dir:
     return node
 
 
+def isabs(path: str) -> bool:
+    if path == RootPath:
+        return True
+    cwd, nodes = parsePath(path)
+    if any([name == '.' or name == '..' for name in nodes]):
+        return False
+    return cwd is Root
+
+
 def absPath(path: str) -> str:
     return nodeat(path).getPath()
 
 
 def isparent(path: str) -> bool:
-    d = dirat(path)
-    return d.hasInSubnodes(CWD)
+    return dirat(path).isCWDParent()
 
 
 def isroot(path: str) -> bool:
@@ -323,10 +340,13 @@ def dirat_cin(path: str) -> Dir:
     return cwd
 
 
-def move(what: str, to: str):
-    node = nodeat(what)
+def moveNode(node: Node, to: str):
     newroot = dirat_cin(to)
     node.move(newroot)
+
+
+def move(what: str, to: str):
+    moveNode(nodeat(what), to)
 
 
 def copy(what: str, to: str):

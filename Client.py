@@ -17,12 +17,12 @@ def CallVFS(func, args):
     return False
 
 
-def _cd(args: list):
-    CallVFS(VFS.cd, args)
+def _cd(path: str):
+    CallVFS(VFS.cd, (path,))
 
 
-def _ls(args: list):
-    if CallVFS(VFS.ls, args):
+def _ls(path: str):
+    if CallVFS(VFS.ls, (path,)):
         return
     entities = CallVFSOutput
     names, types = entities
@@ -39,12 +39,12 @@ def _ls(args: list):
         print('-----------')
 
 
-def _abs(args: list):
-    if not CallVFS(VFS.absPath, args):
+def _abs(path: str):
+    if not CallVFS(VFS.absPath, (path,)):
         print(CallVFSOutput)
 
 
-def format(args: list):
+def format():
     VFS.format()
 
 
@@ -56,70 +56,71 @@ def create(path: str, isDir: bool):
         return
 
 
-def remove(args: list):
-    path = args[0]
+def remove(path: str):
     try:
-        if VFS.isroot(path):
+        node = VFS.nodeat(path)
+        path = node.getPath()
+        if node.isRoot():
             print(f'Root directory cannot be removed')
             return
-        if VFS.isparent(path):
-            print(f'\'%s\' cannot be removed from current working directory' % path)
-            return
-        if not VFS.isempty(path):
-            confirm = input(f'\'%s\' is not empty. Are you sure? [Y\\n]: ' % path).lower()
-            if confirm != 'y':
-                print('Operation aborted')
+        if node.isDir:
+            if node.isCWDParent():
+                print(f'\'%s\' cannot be removed from current working directory' % path)
                 return
-        VFS.remove(path)
+            if not node.isEmpty():
+                confirm = input(f'\'%s\' is not empty. Are you sure? [Y\\n]: ' % path).lower()
+                if confirm != 'y':
+                    print('Operation aborted')
+                    return
+        node.delete()
     except VFS.VFSException as e:
         print(e)
         return
 
 
-def rename(args: list):
-    what, to = args
+def rename(what: str, to: str):
     if CallVFS(VFS.rename, (what, to)):
         return
 
 
-def move(args: list):
-    what, to = args
+def move(what: str, to: str):
     try:
-        if VFS.isroot(what):
-            print(f'Root directory cannot be moved')
+        node = VFS.nodeat(what)
+        what = node.getPath()
+        if node.isRoot():
+            print(f'Root directory cannot be removed')
             return
-        if VFS.isparent(what):
-            print(f'\'%s\' cannot be moved from current working directory' % what)
+        if node.isDir and node.isCWDParent():
+            print(f'\'%s\' cannot be removed from current working directory' % what)
             return
-        VFS.move(what, to)
+        VFS.moveNode(node, to)
     except VFS.VFSException as e:
         print(e)
         return
 
 
-def copy(args: list):
-    what, to = args
+def copy(what: str, to: str):
     if CallVFS(VFS.copy, (what, to)):
         return
 
 
-Command.zero('exit', lambda args: exit(0))
+Command.zero('exit', lambda: exit(0))
 Command.one('cd', str, _cd)
-Command.zero('ls', lambda args: _ls(['.']))
+Command.zero('ls', lambda: _ls('.'))
 Command.one('ls', str, _ls)
 Command.one('abs', str, _abs)
-Command.zero('walk', lambda args: print(*VFS.walk(), sep='\n'))
+Command.zero('walk', lambda: print(*VFS.walk(), sep='\n'))
 
-Command.zero('format', format)
-Command.one('mkfile', str, lambda args: create(args[0], False))
-Command.one('mkdir', str, lambda args: create(args[0], True))
+Command.zero('format', lambda: format)
+Command.one('mkfile', str, lambda path: create(path, False))
+Command.one('mkdir', str, lambda path: create(path, True))
 Command.one('rm', str, remove)
 Command.single('re', 2, (str, str), rename)
 Command.single('mv', 2, (str, str), move)
 Command.single('cp', 2, (str, str), copy)
 
-Command.single('download', 2, (str, str), lambda args: None)
-Command.single('upload', 2, (str, str), lambda args: None)
+Command.single('download', 2, (str, str), lambda virt, real: None)
+Command.single('upload', 2, (str, str), lambda real, virt: None)
 
 
 def prompt() -> str:
