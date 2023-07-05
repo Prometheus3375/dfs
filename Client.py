@@ -112,13 +112,13 @@ def remove(path: str):
                 if confirm != 'y':
                     print('Operation aborted')
                     return
+        parent: Dir = node.parent
         node.delete()
     except VFSException as e:
         print(e)
         return
     # All OK, call remote
     if CallCNP(CNP.remove, path):
-        parent: Dir = node.parent
         parent.add(node.name, node.isDir)
 
 
@@ -153,10 +153,13 @@ def move(what: str, to: str):
         # if node.isDir and FS.isCWDAncestor(node):
         #     print('\'%s\' cannot be moved from current working directory' % what)
         #     return
+        oldparent = node.parent
         FS.moveNode(node, to)
     except VFSException as e:
         print(e)
         return
+    if CallCNP(CNP.move, what, to):
+        FS.moveNode(node, oldparent)
 
 
 def copy(what: str, to: str):
@@ -168,10 +171,12 @@ def copy(what: str, to: str):
         if node.isDir:
             print('\'%s\' is a directory, copying directories is not supported yet' % what)
             return
-        FS.copyNode(node, to)
+        node = FS.copyNode(node, to)
     except VFSException as e:
         print(e)
         return
+    if CallCNP(CNP.copy, what, to):
+        node.delete()
 
 
 def flush():
