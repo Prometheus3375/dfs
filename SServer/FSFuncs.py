@@ -19,7 +19,6 @@ def _lock(func):
     return wrapper
 
 
-@_lock
 def _create_dir(path: str):
     if ospath.isfile(path):
         os.remove(path)
@@ -30,12 +29,10 @@ def _create_dir(path: str):
 _create_dir(root_dir)
 
 
-@_lock
 def _remove_dir(path: str):
     shutil.rmtree(path, True)
 
 
-@_lock
 def _remove(path: str):
     if ospath.isfile(path):
         os.remove(path)
@@ -53,7 +50,6 @@ def GetNameList(path: str) -> list:
     return names[::-1]
 
 
-@_lock
 def _convert_path(path: str) -> str:
     return root_dir + path if path[0] == sep else root_dir + sep + path
 
@@ -131,6 +127,11 @@ def _get_dir_size(path: str):
         else:
             space += entry.stat(follow_symlinks=False).st_size
     return space
+
+
+def GetSize(path: str):
+    path = _convert_path(path)
+    return _get_dir_size(path)
 
 
 @_lock

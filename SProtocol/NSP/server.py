@@ -2,6 +2,7 @@ import functools
 
 from Common import Logger as _loggerclass
 from Common.Constants import StorageServerPort
+from Common.JobEx import SendJob
 from Common.Socket import connection, RecvULong
 from Common.VFS import Join
 from NServer.Storage import GetStorage
@@ -42,10 +43,11 @@ def _cmd(cmd: CommandType):
 
 
 @_cmd(Cmd_Locate)
-def locate(sock: socket, log: str) -> str:
+def locate(sock: socket, log: str) -> tuple:
     pubip = RecvStr(sock)
+    space = RecvULong(sock)
     Logger.add(log + ' - success')
-    return pubip
+    return pubip, space
 
 
 @_cmd(Cmd_MKFile)
@@ -131,3 +133,17 @@ def info(sock: socket, log: str, path: str) -> str:
     res = RecvStr(sock)
     Logger.add(log + ' - success')
     return res
+
+
+@_cmd(Cmd_Upload)
+def upload(sock: socket, log: str, job: int, path: str) -> bool:
+    SendJob(sock, job)
+    SendStr(sock, path)
+    return LogResponse(sock, log)
+
+
+@_cmd(Cmd_Replicate)
+def replicate(sock: socket, log: str, job: int, path: str) -> bool:
+    SendJob(sock, job)
+    SendStr(sock, path)
+    return LogResponse(sock, log)

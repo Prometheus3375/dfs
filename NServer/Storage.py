@@ -5,7 +5,6 @@ from threading import RLock, Thread
 from time import sleep
 
 import SProtocol.NSP.server as NSP
-from Common.Constants import TEST
 from Common.Misc import Enum
 from Common.Socket import SocketError
 from Common.VFS import LockFS
@@ -41,10 +40,11 @@ def SetNet(net: str):
 
 
 class Storage(LockFS):
-    def __init__(self, ip: str, pubip: str):
+    def __init__(self, ip: str, pubip: str, space: int):
         super().__init__()
         self.lock = _locker
         self.ip = ip
+        self.space = space
         _storages[ip] = self
         self.status = Status_Alive
         self.pubip = pubip
@@ -69,25 +69,32 @@ class Storage(LockFS):
     def isFixing(self) -> bool: return self.status == Status_Fixing
 
 
-def _update(ip: str, pubip: str):
+def _update(ip: str, pubip: str, space: int):
     if ip in _storages:
-        _storages[ip].pubip = ip
+        store: Storage = _storages[ip]
+        store.pubip = pubip
+        store.space = space
+        if store.isDead():
+            store.status = Status_Fixing
+            # TODO: create thread and fix storage
     else:
-        Storage(ip, pubip)
+        Storage(ip, pubip, space)
 
 
 @_lock
 def FindStorages():
+    is31 = str(FinderNet.netmask) == '255.255.255.254'
     for addr in FinderNet.hosts():
+        ip = str(addr)
+        # IPv4Network(x.y.z.0/m).hosts() with m == 31 returns x.y.z.0 and x.y.z.1 instead of only x.y.z.1
+        # Do not locate x.y.z.0
+        if is31 and ip[-1] == '0': continue
         try:
-            ip = str(addr)
-            # IPv4Network(x.y.z.0/m).hosts() with m == 31 returns x.y.z.0 and x.y.z.1 instead of only x.y.z.1
-            # Do not locate x.y.z.0
-            if TEST and ip.split('.')[-1] == '0': continue
-            pubip = NSP.locate(ip)
-            _update(ip, pubip)
-        except SocketError as e:
-            pass
+            pubip, space = NSP.locate(ip)
+            _update(ip, pubip, space)
+        except SocketError:
+            if ip in _storages:
+                _storages[ip].status = Status_Dead
 
 
 def FinderThread():
@@ -104,21 +111,23 @@ def StartFinder():
 
 @_lock
 def GetAliveServers() -> list:
-    return [ip for ip in _storages if _storages[ip].isAlive()]
+    alive = [store for store in _storages.values() if store.isAlive()]
+    alive.sort(key=lambda x: x.space, reverse=True)
+    return [store.ip for store in alive]
 
 
 @_lock
 def GetASWithPath(path: str) -> list:
-    ips = []
-    for ip in _storages:
-        fs: Storage = _storages[ip]
+    alive = []
+    for fs in _storages.values():
         if fs.isAlive() and path in fs:
-            ips.append(ip)
-    return ips
+            alive.append(fs)
+    alive.sort(key=lambda x: x.space, reverse=True)
+    return [store.ip for store in alive]
 
 
 @_lock
-def GetStorage(ip: str) -> LockFS:
+def GetStorage(ip: str) -> Storage:
     return _storages[ip]
 
 

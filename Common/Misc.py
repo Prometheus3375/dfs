@@ -21,6 +21,10 @@ class Enum:
     def __contains__(self, i: int) -> bool:
         return self.start < i <= self.top
 
+    def __iter__(self):
+        for i in range(self.start + 1, self.top + 1):
+            yield i
+
 
 class EnumCode:
     def __init__(self):
@@ -37,6 +41,10 @@ class EnumCode:
 
     def __getitem__(self, i: int) -> str:
         return self.codes[i]
+
+    def __iter__(self):
+        for i in range(0, self.top + 1):
+            yield self[i]
 
 
 class MyException(Exception):

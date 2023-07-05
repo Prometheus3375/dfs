@@ -19,6 +19,7 @@ Cmd_Replicate = Commands('replicate')
 Cmd_Fix = Commands('fix')
 
 InfoSeparator = '\n'
+LoadTimeout = 60
 
 ResponseType = str
 SUCCESS = ''

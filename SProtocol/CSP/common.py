@@ -1,23 +1,19 @@
-from Common.Misc import EnumCode
-from Common.Socket import socket, SendInt, RecvInt
+from Common.Socket import socket, RecvStr, SendStr
 from SProtocol.common import SPException
 
-RemoteCommands = EnumCode()
-RCType = int
-
-Command_Upload = RemoteCommands('upload')
-Command_Download = RemoteCommands('download')
-
 FileChunkSize = 1024 * 1024  # in bytes
+
+ResponseType = str
+SUCCESS = ''
 
 
 class CSPException(SPException):
     pass
 
 
-def SendCommand(sock: socket, cmd: RCType):
-    SendInt(sock, cmd)
+def SendResponse(sock: socket, re: ResponseType):
+    SendStr(sock, re)
 
 
-def RecvCommand(sock: socket) -> RCType:
-    return RecvInt(sock)
+def RecvResponse(sock: socket) -> ResponseType:
+    return RecvStr(sock)

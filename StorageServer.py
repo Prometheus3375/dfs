@@ -2,6 +2,7 @@ from threading import Thread
 
 import SProtocol.NSP.storage as NSP
 import SProtocol.storage as SP
+import SServer.Jobs as Jobs
 from Common.Constants import StorageServerPort, TEST
 from Common.Logger import ServerLogger
 from Common.Socket import BindAndListen, Accept, socket, SocketError, CheckIP
@@ -13,6 +14,7 @@ MainSocket = ...
 
 def serve(sock: socket, host: tuple):
     host = '%s:%d' % host
+    Logger.add(host + ' has connected')
     try:
         SP.Serve(sock, Logger)
     except SocketError as e:
@@ -25,6 +27,7 @@ def serve(sock: socket, host: tuple):
         Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
     finally:
         Logger.add(host + ' has disconnected')
+        Jobs.AbortJob(sock)
         sock.close()
 
 
@@ -44,7 +47,7 @@ def incoming():
     print('Server started')
     while True:
         client_sock, addr = Accept(MainSocket)
-        Thread(target=serve, args=(client_sock, addr)).start()
+        Thread(daemon=True, target=serve, args=(client_sock, addr)).start()
 
 
 if __name__ == '__main__':

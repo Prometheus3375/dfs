@@ -2,10 +2,12 @@ import SProtocol.NSP.server as NSP
 from CNProtocol.common import *
 from Common import Logger as _loggerclass
 from Common.Constants import ReplicationFactor
+from Common.JobEx import SendJob
 from Common.Socket import SocketError, SendULong
 from Common.VFS import VFSException
+from NServer import Jobs
 from NServer.FileSystems import Actual
-from NServer.Storage import GetAliveServers, GetASWithPath
+from NServer.Storage import GetAliveServers, GetASWithPath, GetStorage
 
 # region Common
 Logger = ...
@@ -252,9 +254,9 @@ def flush(sock: socket) -> ResultType:
 @_reg(Command_Info)
 def info(sock: socket) -> ResultType:
     path = RecvStr(sock)
-    Logger.addHost(*sock.getpeername(), 'attempts to get stats of \'%s\'' % path + Mes_UpdateLocal)
+    Logger.addHost(*sock.getpeername(), 'attempts to get stats of \'%s\'' % path)
     if path not in Actual:
-        SendResponse(sock, '\'%s\' does not exist on remote' % path)
+        SendResponse(sock, '\'%s\' does not exist on remote' % path + Mes_UpdateLocal)
         return Result_Denied
     # Check if file
     if _is_dir(sock, path):
@@ -271,4 +273,45 @@ def info(sock: socket) -> ResultType:
     Logger.addHost(*sock.getpeername(), 'has got stats of \'%s\'' % path)
     SendResponse(sock, SUCCESS)
     SendStr(sock, stats)
+    return Result_Success
+
+
+@_reg(Command_Upload)
+def upload(sock: socket) -> ResultType:
+    path = RecvStr(sock)
+    if _cant_add_node(sock, path):
+        return Result_Denied
+    # Create Job
+    job = Jobs.new(sock)
+    # Select server
+    loader = ''
+    for ip in GetAliveServers():
+        if CallNSP(ip, NSP.upload, job, path):
+            loader = ip
+            break
+    if not loader:
+        SendResponse(sock, '\'%s\' cannot be uploaded' % path)
+        Jobs.complete(job)
+        return Result_Denied
+    # Response client
+    loaderfs = GetStorage(loader)
+    SendResponse(sock, SUCCESS)
+    SendJob(sock, job)
+    SendStr(sock, loaderfs.pubip)
+    # Get answer from client
+    re = RecvResponse(sock)
+    # Complete job
+    Jobs.complete(job)
+    # Check answer
+    if re != SUCCESS:
+        return Result_Fail
+    # All OK, add on actual
+    Actual.add(path, False)
+    # Add to storage
+    if path in loaderfs:
+        loaderfs.remove(path)
+    loaderfs.add(path, False)
+    # Log
+    Logger.addHost(*sock.getpeername(), 'has added \'%s\'' % path)
+    # TODO: replication
     return Result_Success

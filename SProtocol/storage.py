@@ -1,8 +1,9 @@
+import SProtocol.CSP.storage as CSP
 import SProtocol.NSP.storage as NSP
 from Common.Logger import Logger
 from SProtocol.common import *
 
-_wmi2func = {NameServer: NSP.ServeNameServer}
+_wmi2func = {NameServer: NSP.ServeNameServer, Client: CSP.ServeClient}
 
 
 def Serve(sock: socket, logger: Logger):
@@ -16,3 +17,4 @@ def Serve(sock: socket, logger: Logger):
 
 def SetLogger(logger: Logger):
     NSP.SetLogger(logger)
+    CSP.SetLogger(logger)

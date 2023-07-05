@@ -1,5 +1,9 @@
+import os.path as ospath
+
 import SServer.FSFuncs as FS
+import SServer.Jobs as Jobs
 from Common import Logger as _loggerclass
+from Common.JobEx import RecvJob
 from Common.Socket import SendULong
 from SProtocol.NSP.common import *
 
@@ -38,8 +42,7 @@ def ServeNameServer(sock: socket):
         Logger.add(log)
         fail = True
         try:
-            _cmd2func[cmd](sock)
-            fail = False
+            fail = _cmd2func[cmd](sock)
         finally:
             Logger.add(log + ' - ' + ('fail' if fail else 'success'))
     else:
@@ -47,31 +50,35 @@ def ServeNameServer(sock: socket):
 
 
 @_reg(Cmd_Locate)
-def locate(sock: socket):
+def locate(sock: socket) -> bool:
     SendStr(sock, PublicIP)
+    SendULong(sock, FS.GetFreeSpace())
+    return False
 
 
 @_reg(Cmd_MKFile)
-def mkfile(sock: socket):
+def mkfile(sock: socket) -> bool:
     path = RecvStr(sock)
     Logger.addHost(*sock.getpeername(), 'attempts to create an empty file \'%s\'' % path)
-    fpath = FS.CreateFile(path) + '0'  # zero chunk
+    fpath = ospath.join(FS.CreateFile(path), '0')  # zero chunk
     with open(fpath, 'wb'): pass
     Logger.addHost(*sock.getpeername(), 'has created \'%s\'' % path)
     SendResponse(sock, SUCCESS)
+    return False
 
 
 @_reg(Cmd_Remove)
-def remove(sock: socket):
+def remove(sock: socket) -> bool:
     path = RecvStr(sock)
     Logger.addHost(*sock.getpeername(), 'attempts to remove \'%s\'' % path)
     FS.Remove(path)
     Logger.addHost(*sock.getpeername(), 'has removed \'%s\'' % path)
     SendResponse(sock, SUCCESS)
+    return False
 
 
 @_reg(Cmd_Rename)
-def rename(sock: socket):
+def rename(sock: socket) -> bool:
     path = RecvStr(sock)
     name = RecvStr(sock)
     t = path, name
@@ -79,10 +86,11 @@ def rename(sock: socket):
     FS.Rename(path, name)
     Logger.addHost(*sock.getpeername(), 'has renamed \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)
+    return False
 
 
 @_reg(Cmd_Move)
-def move(sock: socket):
+def move(sock: socket) -> bool:
     what = RecvStr(sock)
     to = RecvStr(sock)
     t = what, to
@@ -90,10 +98,11 @@ def move(sock: socket):
     FS.Move(what, to)
     Logger.addHost(*sock.getpeername(), 'has moved \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)
+    return False
 
 
 @_reg(Cmd_Copy)
-def copy(sock: socket):
+def copy(sock: socket) -> bool:
     what = RecvStr(sock)
     to = RecvStr(sock)
     t = what, to
@@ -101,19 +110,21 @@ def copy(sock: socket):
     FS.Copy(what, to)
     Logger.addHost(*sock.getpeername(), 'has copied \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)
+    return False
 
 
 @_reg(Cmd_Flush)
-def flush(sock: socket):
+def flush(sock: socket) -> bool:
     Logger.addHost(*sock.getpeername(), 'attempts to flush file system')
     FS.Flush()
     space = FS.GetFreeSpace()
     Logger.addHost(*sock.getpeername(), 'has flushed file system')
     SendULong(sock, space)
+    return False
 
 
 @_reg(Cmd_Info)
-def info(sock: socket):
+def info(sock: socket) -> bool:
     path = RecvStr(sock)
     Logger.addHost(*sock.getpeername(), 'attempts to get stats of \'%s\'' % path)
     stats = FS.GetStats(path)
@@ -121,3 +132,16 @@ def info(sock: socket):
     stats = InfoSeparator.join(stats)
     Logger.addHost(*sock.getpeername(), 'has got stats of \'%s\'' % path)
     SendStr(sock, stats)
+    return False
+
+
+@_reg(Cmd_Upload)
+def upload(sock: socket) -> bool:
+    job = RecvJob(sock)
+    path = RecvStr(sock)
+    j = Jobs.AddUploadJob(job, path)
+    SendResponse(sock, SUCCESS)
+    if not j.wait(LoadTimeout):
+        Jobs.CompleteJob(job)
+        return True
+    return False

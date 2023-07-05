@@ -21,6 +21,7 @@ InfoSeparator = '\n'
 
 ResponseType = str
 SUCCESS = ''
+UploadFail = f'Uploading of \'%s\' failed'
 
 
 class CNPException(MyException):

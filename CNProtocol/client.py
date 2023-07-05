@@ -1,6 +1,8 @@
 import functools
 
+import SProtocol.CSP.client as CSP
 from CNProtocol.common import *
+from Common.JobEx import RecvJob
 from Common.Socket import connection, RecvULong
 
 
@@ -74,11 +76,20 @@ def info(sock: socket, what: str):
 @_cmd(Command_Upload)
 def upload(sock: socket, real: str, virt: str) -> ResponseType:
     SendStr(sock, virt)
-    # TODO
-    return RecvResponse(sock)
+    re = RecvResponse(sock)
+    if re != SUCCESS:
+        return re
+    job = RecvJob(sock)
+    pubip = RecvStr(sock)
+    # noinspection PyTypeChecker
+    if CSP.upload(pubip, job, real):
+        SendResponse(sock, SUCCESS)
+        return SUCCESS
+    SendResponse(sock, UploadFail % real)
+    return UploadFail % real
 
 
-@_cmd(Command_Flush)
+@_cmd(Command_Download)
 def download(sock: socket, virt: str, real: str) -> ResponseType:
     SendStr(sock, virt)
     # TODO

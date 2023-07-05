@@ -1,9 +1,11 @@
+import os.path as ospath
 from datetime import datetime
 
-import CNProtocol.сlient as CNP
+import CNProtocol.client as CNP
+import SProtocol.CSP.client as CSP
 from Common.Constants import *
 from Common.Shell import shell, Command, User
-from Common.Socket import SocketError, Error_Other, CheckIP
+from Common.Socket import SocketError, CheckIP
 from Common.VFS import FileSystem, VFSException, Node, Dir
 
 FS = FileSystem()
@@ -14,13 +16,18 @@ DateTimeFormat = '%c'
 
 
 def CallVFS(func, *args):
+    """
+    :param func: function to call
+    :param args: additional arguments of function
+    :return: True if an error occurs, False otherwise
+    """
     try:
         global CallVFSOutput
         CallVFSOutput = func(*args)
+        return False
     except VFSException as e:
         print(e)
         return True
-    return False
 
 
 # region No connect
@@ -62,17 +69,18 @@ def CallCNP(func, *args, print_response: bool = True) -> bool:
     """
     try:
         re = func(Server, *args)
-        if re and print_response: print(re)
+        if print_response and re: print(re)
         global CallCNPOutput
         CallCNPOutput = re
         return False
     except SocketError as e:
-        if e.code == Error_Other:
-            print('Unknown error occurred:', e)
-        else:
-            print('Error occurred:', e)
+        print('Socket error occurred:', e)
     except CNP.CNPException as e:
-        print('Error occurred:', e)
+        print('Client-NameServer protocol error occurred:', e)
+    except CSP.CSPException as e:
+        print('Client-StorageServer protocol error occurred:', e)
+    except Exception as e:
+        print('An unknown error occurred:', e)
     return True
 
 
@@ -216,6 +224,28 @@ def info(path: str):
               )
 
 
+def upload(real: str, virt: str):
+    # Check real
+    if not ospath.exists(real):
+        print(f'\'{real}\' does not exist')
+        return
+    if not ospath.isfile(real):
+        print(f'\'{real}\' must be a file')
+        return
+    # Check virt
+    if CallVFS(FS.add, virt, False):
+        return
+    # All OK, call remote
+    node: Node = CallVFSOutput
+    virt = node.getPath()
+    if CallCNP(CNP.upload, real, virt):
+        node.delete()
+
+
+def download(virt: str, real: str):
+    pass
+
+
 # endregion
 # region Commands
 Command.zero('exit', lambda: exit(0))
@@ -235,8 +265,8 @@ Command.add('cp', 2, (str, str), copy)
 
 Command.zero('flush', flush)
 Command.one('info', str, info)
-Command.add('upload', 2, (str, str), lambda real, virt: None)
-Command.add('download', 2, (str, str), lambda virt, real: None)
+Command.add('upload', 2, (str, str), upload)
+Command.add('download', 2, (str, str), download)
 
 
 # endregion

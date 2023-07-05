@@ -1,6 +1,7 @@
-from threading import Thread, Lock
+from threading import Lock, Thread
 
 import CNProtocol.server as CNP
+import NServer.Jobs as Jobs
 import SProtocol.NSP.server as NSP
 from Common.Constants import NameServerClientPort, TEST
 from Common.Logger import ServerLogger
@@ -16,30 +17,26 @@ SafeLock = Lock()  # One user at a time
 ClientSocket = ...  # set in incoming
 
 
-class Listener(Thread):
-    def __init__(self, sock: socket, addr: tuple):
-        super().__init__(daemon=True)
-        self.sock = sock
-        self.ip, self.port = addr
-        self.host = '%s:%d' % addr
-        Logger.add(self.host + ' has connected')
-
-    def run(self):
-        with SafeLock:
-            sock = self.sock
-            try:
-                CNP.ServeClient(sock)
-            except SocketError as e:
-                Logger.add('A socket error occurred during serving %s: ' % self.host + str(e))
-            except CNP.CNPException as e:
-                Logger.add('A protocol error occurred during serving %s: ' % self.host + str(e))
-            except VFSException as e:
-                Logger.add('A VFS error occurred during serving %s: ' % self.host + str(e))
-            except Exception as e:
-                Logger.add('A unknown error occurred during serving %s: ' % self.host + str(e))
-            finally:
-                Logger.add(self.host + ' has disconnected')
-                sock.close()
+def serve(sock: socket, host: tuple):
+    host = '%s:%d' % host
+    Logger.add(host + ' has connected')
+    with SafeLock:
+        try:
+            CNP.ServeClient(sock)
+        except SocketError as e:
+            Logger.add('A socket error occurred during serving %s: ' % host + str(e))
+        except CNP.CNPException as e:
+            Logger.add('Client-NameServer protocol error occurred during serving %s: ' % host + str(e))
+        except NSP.NSPException as e:
+            Logger.add('NameServer-StorageServer protocol error occurred during serving %s: ' % host + str(e))
+        except VFSException as e:
+            Logger.add('A VFS error occurred during serving %s: ' % host + str(e))
+        except Exception as e:
+            Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
+        finally:
+            Logger.add(host + ' has disconnected')
+            Jobs.abort(sock)
+            sock.close()
 
 
 def SetLocalNet():
@@ -58,8 +55,8 @@ def incoming():
     ClientSocket = BindAndListen('', NameServerClientPort)
     print('Server started')
     while True:
-        client_sock, addr = Accept(ClientSocket)
-        Listener(client_sock, addr).start()
+        sock, addr = Accept(ClientSocket)
+        Thread(daemon=True, target=serve, args=(sock, addr)).start()
 
 
 def main():
