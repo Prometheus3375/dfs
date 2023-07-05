@@ -3,6 +3,7 @@ from ipaddress import IPv4Address, AddressValueError, IPv4Network
 from math import ceil
 from socket import socket, error as _error, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, gethostbyname
 from struct import pack, unpack, calcsize
+from time import sleep
 
 from Common.Misc import EnumCode, MyError
 
@@ -12,6 +13,8 @@ Error_SocketClosed = Errors('The remote host has closed the connection')
 Error_Other = Errors.top + 1
 
 ChunkSize = 1024  # in bytes
+SleepTime = 0.01  # in seconds
+
 IntFormat = '!i'
 IntSize = calcsize(IntFormat)
 ULongFormat = '!Q'
@@ -131,9 +134,11 @@ def SendBytes(sock: socket, bts: bytes):
         for i in range(n - 1):
             this = bts[i * ChunkSize:(i + 1) * ChunkSize]
             _sendChunk(sock, this)
+            sleep(SleepTime)
         # Send last chunk
         last = bts[(n - 1) * ChunkSize:]
         _sendSizedChunk(sock, last)
+        sleep(SleepTime)
 
 
 def SendStr(sock: socket, s: str):

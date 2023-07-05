@@ -24,15 +24,15 @@ def serve(sock: socket, host: tuple):
         try:
             CNP.ServeClient(sock)
         except SocketError as e:
-            Logger.addError('A socket error occurred during serving %s: ' % host, e)
+            Logger.addError('A socket error occurred during serving %s' % host, e)
         except CNP.CNPException as e:
-            Logger.addError('Client-NameServer protocol error occurred during serving %s: ' % host, e)
+            Logger.addError('Client-NameServer protocol error occurred during serving %s' % host, e)
         except NSP.NSPException as e:
-            Logger.addError('NameServer-StorageServer protocol error occurred during serving %s: ' % host, e)
+            Logger.addError('NameServer-StorageServer protocol error occurred during serving %s' % host, e)
         except VFSException as e:
-            Logger.addError('A VFS error occurred during serving %s: ' % host, e)
+            Logger.addError('A VFS error occurred during serving %s' % host, e)
         except Exception as e:
-            Logger.addError('A unknown error occurred during serving %s: ' % host, e)
+            Logger.addError('A unknown error occurred during serving %s' % host, e)
         finally:
             Logger.add(host + ' has disconnected')
             Jobs.abort(sock)
