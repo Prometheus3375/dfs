@@ -109,56 +109,6 @@ def _sendall(sock: socket, bts: bytes):
         raise SocketError(Error_SocketClosed)
 
 
-def SendUByte(sock: socket, i: int):
-    _sendall(sock, pack(UByteFormat, i))
-
-
-def SendInt(sock: socket, i: int):
-    _sendall(sock, pack(IntFormat, i))
-
-
-def SendULong(sock: socket, i: int):
-    _sendall(sock, pack(ULongFormat, i))
-
-
-def _sendChunk(sock: socket, chunk: bytes):
-    _sendall(sock, chunk)
-
-
-def _sendSizedChunk(sock: socket, chunk: bytes):
-    SendInt(sock, len(chunk))
-    _sendChunk(sock, chunk)
-
-
-def print_progress(percent: float):
-    percent = floor(percent * 100.)
-    out = '\rProgress - %d%% [' % percent + '#' * percent + '.' * (100 - percent) + ']'
-    print(out, end='')
-
-
-def SendBytes(sock: socket, bts: bytes, progress: bool = False):
-    size = len(bts)
-    # Send size
-    SendULong(sock, size)
-    if progress:
-        print_progress(0)
-        sent = 0
-    if size > 0:
-        # Get number of chunks
-        chunks = ceil(size / ChunkSize)
-        # Send all chunks
-        for i in range(chunks):
-            this = bts[i * ChunkSize:(i + 1) * ChunkSize]
-            _sendChunk(sock, this)
-            if progress:
-                sent += len(this)
-                print_progress(sent / size)
-
-
-def SendStr(sock: socket, s: str):
-    return SendBytes(sock, s.encode())
-
-
 def _recv(sock: socket, bufsize: int) -> bytes:
     try:
         result = sock.recv(bufsize)
@@ -169,9 +119,17 @@ def _recv(sock: socket, bufsize: int) -> bytes:
     raise SocketError(Error_SocketClosed)
 
 
+def SendUByte(sock: socket, i: int):
+    _sendall(sock, pack(UByteFormat, i))
+
+
 def RecvUByte(sock: socket) -> int:
     result = _recv(sock, UByteSize)
     return unpack(UByteFormat, result)[0]
+
+
+def SendInt(sock: socket, i: int):
+    _sendall(sock, pack(IntFormat, i))
 
 
 def RecvInt(sock: socket) -> int:
@@ -179,18 +137,34 @@ def RecvInt(sock: socket) -> int:
     return unpack(IntFormat, result)[0]
 
 
+def SendULong(sock: socket, i: int):
+    _sendall(sock, pack(ULongFormat, i))
+
+
 def RecvULong(sock: socket) -> int:
     result = _recv(sock, ULongSize)
     return unpack(ULongFormat, result)[0]
+
+
+def _sendChunk(sock: socket, chunk: bytes):
+    _sendall(sock, chunk)
 
 
 def RecvChunk(sock: socket) -> bytes:
     return _recv(sock, ChunkSize)
 
 
-def RecvSizedChunk(sock: socket) -> bytes:
-    size = RecvInt(sock)
-    return _recv(sock, size)
+def SendBytes(sock: socket, bts: bytes):
+    size = len(bts)
+    # Send size
+    SendULong(sock, size)
+    if size > 0:
+        # Get number of chunks
+        chunks = ceil(size / ChunkSize)
+        # Send all chunks
+        for i in range(chunks):
+            this = bts[i * ChunkSize:(i + 1) * ChunkSize]
+            _sendChunk(sock, this)
 
 
 def RecvBytes(sock: socket) -> bytes:
@@ -208,5 +182,52 @@ def RecvBytes(sock: socket) -> bytes:
     return result
 
 
+def SendStr(sock: socket, s: str):
+    return SendBytes(sock, s.encode())
+
+
 def RecvStr(sock: socket) -> str:
     return RecvBytes(sock).decode()
+
+
+def print_progress(percent: float):
+    percent = floor(percent * 100.)
+    out = '\rProgress - %d%% [' % percent + '#' * percent + '.' * (100 - percent) + ']'
+    print(out, end='')
+
+
+def SendBytesProgress(sock: socket, bts: bytes):
+    size = len(bts)
+    # Send size
+    SendULong(sock, size)
+    if size > 0:
+        print_progress(0.)
+        sent = 0
+        # Get number of chunks
+        chunks = ceil(size / ChunkSize)
+        # Send all chunks
+        for i in range(chunks):
+            this = bts[i * ChunkSize:(i + 1) * ChunkSize]
+            _sendChunk(sock, this)
+            sent += len(this)
+            print_progress(sent / size)
+        print()  # new line after line with '\r'
+
+
+def RecvBytesProgress(sock: socket) -> bytes:
+    # Get number of bytes
+    size = RecvULong(sock)
+    result = b''
+    if size > 0:
+        print_progress(0.)
+        # Get number of chunks
+        chunks = ceil(size / ChunkSize)
+        # Get all chunk except last
+        for i in range(chunks - 1):
+            result += RecvChunk(sock)
+            print_progress(len(result) / size)
+        # Last chunk will have different size, calculate it
+        result += _recv(sock, size - (chunks - 1) * ChunkSize)
+        print_progress(len(result) / size)
+        print()  # new line after line with '\r'
+    return result

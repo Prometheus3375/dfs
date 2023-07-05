@@ -1,4 +1,4 @@
-from Common.Socket import socket, RecvStr, SendStr, SendUByte, RecvUByte
+from Common.Socket import socket, RecvStr, SendStr
 from SProtocol.common import SPException
 
 FileChunkSize = 1024 * 1024  # in bytes
@@ -17,11 +17,3 @@ def SendResponse(sock: socket, re: ResponseType):
 
 def RecvResponse(sock: socket) -> ResponseType:
     return RecvStr(sock)
-
-
-def SendSignal(sock: socket):
-    SendUByte(sock, 0)
-
-
-def RecvSignal(sock: socket) -> int:
-    return RecvUByte(sock)

@@ -1,5 +1,6 @@
 import functools
 import os.path as ospath
+from math import ceil
 
 import SServer.FSFuncs as FS
 from Common.Constants import StorageServerPort
@@ -37,21 +38,21 @@ def replicate(sock: socket):
     # Start replication
     for _ in range(paths):
         # Receive path
-        SendSignal(sock)
         path = RecvStr(sock)
         log = f'Starting to replicate \'{path}\' from storage %s' % host
         Logger.add(log)
         # Prepare path
         validpath = FS.CreateFile(path)
-        # Receive chunk number
-        SendSignal(sock)
-        chunks = RecvULong(sock)
-        # Write chunks
+        # Receive all bytes
+        bts = RecvBytes(sock)
+        # Get number of chunks
+        chunks = ceil(len(bts) / FileChunkSize)
         for i in range(chunks):
+            # Write chunk
             fpath = ospath.join(validpath, str(i))
             with open(fpath, 'wb') as f:
-                SendSignal(sock)
-                f.write(RecvBytes(sock))
+                f.write(bts[i * FileChunkSize: (i + 1) * FileChunkSize])
         # Finish file replication
         Logger.add(log + ' - success')
+        SendSignal(sock)
     Logger.add(mainlog + ' - success')

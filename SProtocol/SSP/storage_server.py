@@ -41,19 +41,20 @@ def replicate(sock: socket, paths: list):
     for path in paths:
         Logger.addHost(*sock.getpeername(), 'attempts to replicate file \'%s\'' % path)
         # Send path
-        RecvSignal(sock)
         SendStr(sock, path)
-        # Get chunks number and valid path
+        # Get number of chunks
         chunks = ceil(FS.GetSize(path) / FileChunkSize)
+        # Get valid path
         validpath = FS.GetValidPath(path)
-        # Send chunks
-        RecvSignal(sock)
-        SendULong(sock, chunks)
-        # Send file chunk by chunk
+        # Get all bytes
+        bts = b''
         for i in range(chunks):
             fpath = ospath.join(validpath, str(i))
             with open(fpath, 'rb') as f:
-                RecvSignal(sock)
-                SendBytes(sock, f.read())
+                bts += f.read()
+        # Send everything
+        SendBytes(sock, bts)
+        # Wait till other storage will be ready
+        RecvSignal(sock)
         Logger.addHost(*sock.getpeername(), 'has replicated file \'%s\'' % path)
     Logger.addHost(*sock.getpeername(), 'has replicated %d file(s) ' % n)
