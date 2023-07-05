@@ -3,9 +3,10 @@ from datetime import datetime
 
 import CNProtocol.client as CNP
 import SProtocol.CSP.client as CSP
+from Common.AskInput import GetIPOrDomain
 from Common.Constants import *
 from Common.Shell import shell, Command, User
-from Common.Socket import SocketError, CheckIP
+from Common.Socket import SocketError
 from Common.VFS import FileSystem, VFSException, Node, Dir
 
 FS = FileSystem()
@@ -286,12 +287,7 @@ Command.add('download', 2, (str, str), download)
 
 
 def SetServer():
-    while True:
-        ip = 'localhost' if TEST else input('Input DFS server IP address or domain name: ').strip()
-        # Check IP or domain
-        ip = CheckIP(ip)
-        if ip: break
-        print('Error: \'%s\' - no such IP or domain' % ip)
+    ip = GetIPOrDomain('ip.txt', 'Input DFS server IP address or domain name')
     global Server
     Server = ip, NameServerClientPort
 

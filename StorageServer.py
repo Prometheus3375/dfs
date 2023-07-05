@@ -3,13 +3,15 @@ from threading import Thread
 import SProtocol.NSP.storage as NSP
 import SProtocol.storage as SP
 import SServer.Jobs as Jobs
+from Common.AskInput import GetIPOrDomain
 from Common.Constants import StorageServerPort, TEST
 from Common.Logger import ServerLogger
-from Common.Socket import BindAndListen, Accept, socket, SocketError, CheckIP
+from Common.Socket import BindAndListen, Accept, socket, SocketError
 
 LogPath = 'Slog.txt'
 Logger = ServerLogger(LogPath, not TEST)
 MainSocket: socket = ...
+IPPath = 'ip.txt'
 
 
 def serve(sock: socket, host: tuple):
@@ -32,12 +34,7 @@ def serve(sock: socket, host: tuple):
 
 
 def SetPublicIP():
-    while True:
-        ip = 'localhost' if TEST else input('Input public IP address or domain name of this server: ').strip()
-        # Check IP or domain
-        ip = CheckIP(ip)
-        if ip: break
-        print('Error: \'%s\' - no such IP or domain' % ip)
+    ip = GetIPOrDomain(IPPath, 'Input public IP address or domain name of this server')
     NSP.SetPublicIP(ip)
 
 

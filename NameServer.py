@@ -4,9 +4,9 @@ import CNProtocol.server as CNP
 import NServer.Jobs as Jobs
 import NServer.Storage as Storage
 import SProtocol.NSP.server as NSP
+from Common.AskInput import GetNet
 from Common.Constants import NameServerClientPort, TEST
 from Common.Logger import ServerLogger
-from Common.Socket import CheckNet
 from Common.Socket import socket, SocketError, BindAndListen, Accept
 from Common.VFS import VFSException
 from NServer.FileSystems import SaveActual, LoadActual
@@ -15,6 +15,7 @@ LogFile = 'Nlog.txt'
 Logger = ServerLogger(LogFile, not TEST)
 SafeLock = Lock()  # One user at a time
 ClientSocket: socket = ...  # set in incoming
+NetPath = 'net.txt'
 
 
 def serve(sock: socket, host: tuple):
@@ -40,13 +41,7 @@ def serve(sock: socket, host: tuple):
 
 
 def SetLocalNet():
-    while True:
-        net = '127.0.0.0/31' if TEST else input('Input network address where storages are situated: ').strip()
-        # Check IP or domain
-        res = CheckNet(net)
-        if not res:
-            break
-        print(res)
+    net = GetNet(NetPath, 'Input network address where storages are situated')
     Storage.SetNet(net)
 
 
