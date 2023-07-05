@@ -51,7 +51,7 @@ def GetNameList(path: str) -> list:
 
 
 def _convert_path(path: str) -> str:
-    return ospath.join(root_dir, path)
+    return root_dir + path if path[0] == sep else root_dir + sep + path
 
 
 @_lock
