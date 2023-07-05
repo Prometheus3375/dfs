@@ -1,5 +1,5 @@
+from CNProtocol.common import *
 from Common.Socket import *
-from .common import *
 
 
 def _send_cmd(sock: socket, cmd: int):

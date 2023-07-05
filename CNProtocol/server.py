@@ -1,7 +1,7 @@
+from CNProtocol.common import *
 from Common.Socket import *
-from NServer import Logger
 from NServer.FileSystems import Actual, Pending
-from .common import *
+from NameServer import Logger
 
 _cmd2func = {}
 Results = EnumCode()

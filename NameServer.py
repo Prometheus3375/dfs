@@ -1,9 +1,12 @@
 from threading import Thread
 
 import CNProtocol.server as CNP
-import NServer.Logger as Logger
-from Common.Constants import *
-from Common.Socket import SOL_SOCKET, SO_REUSEADDR, socket, AF_INET, SOCK_STREAM, SocketError
+from Common.Constants import NameServerClientPort, TEST
+from Common.Logger import ServerLogger
+from Common.Socket import socket, SocketError, BindAndListen, Accept
+
+LogFile = 'log.txt'
+Logger = ServerLogger(LogFile, not TEST)
 
 
 class Listener(Thread):
@@ -30,12 +33,9 @@ class Listener(Thread):
 
 
 def incoming():
-    sock = socket(AF_INET, SOCK_STREAM)
-    sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    sock.bind(('', NameServerClientPort))
-    sock.listen()
+    sock = BindAndListen('', NameServerClientPort)
     while True:
-        client_sock, addr = sock.accept()
+        client_sock, addr = Accept(sock)
         Listener(client_sock, addr).start()
 
 

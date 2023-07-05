@@ -9,14 +9,6 @@ def num2order(i: int) -> str:
     return '%dth' % i
 
 
-def GetPubPM(cls, parent) -> dict:
-    """Returns all public methods from parent which are not present in class"""
-    return {
-        k: v for k, v in vars(parent).items()
-        if k not in vars(cls) and k[0] != '_' and callable(v)
-    }
-
-
 class Enum:
     def __init__(self, start: int = -1):
         self.start = start

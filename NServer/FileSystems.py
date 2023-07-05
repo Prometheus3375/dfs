@@ -1,30 +1,12 @@
-import functools
-from threading import RLock
-
+from Common.ClassWithLock import CreateClassWithLock
 from Common.Constants import TEST
-from Common.Misc import GetPubPM
 from Common.VFS import FileSystem
 
 
-class FSWithLock(FileSystem):
-    def __init__(self):
-        super().__init__()
-        self.lock = RLock()
+class FSWithLock(FileSystem): pass
 
 
-def _add_lock(func):
-    @functools.wraps(func)
-    def wrapper(self, *args):
-        with self.lock:
-            return func(self, *args)
-
-    return wrapper
-
-
-# Override public FileSystem methods
-for k, v in GetPubPM(FSWithLock, FileSystem).items():
-    setattr(FSWithLock, k, _add_lock(v))
-# Define file systems
+FSWithLock = CreateClassWithLock(FileSystem, FSWithLock)
 Actual = FSWithLock()
 Actual_BackUp = 'ActualFS.txt'
 Pending = FSWithLock()
