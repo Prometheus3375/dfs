@@ -11,7 +11,7 @@ from Common.Socket import BindAndListen, Accept, socket, SocketError
 LogPath = 'Slog.txt'
 Logger = ServerLogger(LogPath, not TEST)
 MainSocket: socket = ...
-IPPath = 'ip.txt'
+IPPath = 'myip.txt'
 
 
 def serve(sock: socket, host: tuple):

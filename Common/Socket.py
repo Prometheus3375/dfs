@@ -101,12 +101,16 @@ def Accept(sock: socket) -> tuple:
 
 
 def _sendall(sock: socket, bts: bytes):
+    size = len(bts)
+    sent = 0
     try:
-        result = sock.sendall(bts)
+        while sent < size:
+            result = sock.send(bts[sent:])
+            if result == 0:
+                raise SocketError(Error_SocketClosed)
+            sent += result
     except _error as e:
         raise SocketError(Error_Other, str(e))
-    if result is not None:
-        raise SocketError(Error_SocketClosed)
 
 
 def _recv(sock: socket, bufsize: int) -> bytes:
@@ -169,16 +173,16 @@ def SendBytes(sock: socket, bts: bytes):
 
 def RecvBytes(sock: socket) -> bytes:
     # Get number of bytes
-    n = RecvULong(sock)
+    size = RecvULong(sock)
     result = b''
-    if n > 0:
+    if size > 0:
         # Find chunk number
-        chunks = ceil(n / ChunkSize)
+        chunks = ceil(size / ChunkSize)
         # Get all chunk except last
         for i in range(chunks - 1):
             result += RecvChunk(sock)
         # Last chunk will have different size, calculate it
-        result += _recv(sock, n - (chunks - 1) * ChunkSize)
+        result += _recv(sock, size - (chunks - 1) * ChunkSize)
     return result
 
 

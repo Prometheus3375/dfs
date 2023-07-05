@@ -28,6 +28,7 @@ def upload(sock: socket, path: str) -> bool:
 
 @_cmd
 def download(sock: socket, path: str) -> bool:
+    bts = RecvBytesProgress(sock)
     with open(path, 'wb') as f:
-        f.write(RecvBytesProgress(sock))
+        f.write(bts)
     return True

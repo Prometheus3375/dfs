@@ -287,7 +287,7 @@ Command.add('download', 2, (str, str), download)
 
 
 def SetServer():
-    ip = GetIPOrDomain('ip.txt', 'Input DFS server IP address or domain name')
+    ip = GetIPOrDomain('server_ip.txt', 'Input DFS server IP address or domain name')
     global Server
     Server = ip, NameServerClientPort
 

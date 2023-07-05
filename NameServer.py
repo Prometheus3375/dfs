@@ -15,7 +15,7 @@ LogFile = 'Nlog.txt'
 Logger = ServerLogger(LogFile, not TEST)
 SafeLock = Lock()  # One user at a time
 ClientSocket: socket = ...  # set in incoming
-NetPath = 'net.txt'
+NetPath = 'storage_net.txt'
 
 
 def serve(sock: socket, host: tuple):
