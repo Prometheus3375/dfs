@@ -13,7 +13,8 @@ Error_SocketClosed = Errors('The remote host has closed the connection')
 Error_Other = Errors.top + 1
 
 ChunkSize = 1024  # in bytes
-SleepTime = 0.005  # in seconds
+SleepTime = 0.01  # in seconds
+SocketTimeout = 1800  # in seconds
 
 IntFormat = '!i'
 IntSize = calcsize(IntFormat)
@@ -26,7 +27,7 @@ class SocketError(MyError):
         super().__init__(Errors, err_code, msg)
 
 
-def connection(ip: str = None, port: int = None, timeout: float = None):
+def connection(ip: str = None, port: int = None, timeout: float = SocketTimeout):
     def _connect(func):
         def wrapper(host: tuple, *args):
             with socket(AF_INET, SOCK_STREAM) as sock:

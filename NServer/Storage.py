@@ -10,7 +10,7 @@ from Common.Misc import Enum
 from Common.Socket import SocketError
 from Common.VFS import LockFS
 
-FinderPeriod = 30  # in seconds
+FinderPeriod = 60  # in seconds
 FinderNet: IPv4Network = ...
 Logger: _loggerclass = ...
 
@@ -74,6 +74,7 @@ class Storage(LockFS):
     def isDead(self) -> bool: return self.status == Status_Dead
 
 
+@_lock
 def _update(ip: str, pubip: str, space: int):
     if ip in _storages:
         store: Storage = _storages[ip]
@@ -90,6 +91,17 @@ def _update(ip: str, pubip: str, space: int):
 
 
 @_lock
+def _mark_as_dead(store: Storage):
+    # Ignore if was dead
+    if store.isAlive():
+        # Mark as dead
+        store.status = Status_Dead
+        Logger.add('Storage %s has gone offline' % store.ip)
+        # Replicate everything from dead storage
+        paths = store.walkFiles()
+        NSP.Replicate(paths)
+
+
 def FindStorages():
     is31 = str(FinderNet.netmask) == '255.255.255.254'
     for addr in FinderNet.hosts():
@@ -105,14 +117,7 @@ def FindStorages():
         except SocketError:
             # A storage is lost
             if ip in _storages:
-                store: Storage = _storages[ip]
-                if store.isAlive():
-                    # Mark as dead
-                    store.status = Status_Dead
-                    Logger.add('Storage %s has gone offline' % ip)
-                    # Replicate everything from dead storage
-                    paths = store.walkFiles()
-                    NSP.Replicate(paths)
+                _mark_as_dead(_storages[ip])
 
 
 def FinderThread():
