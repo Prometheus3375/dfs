@@ -345,10 +345,12 @@ class FileSystem:
         node.delete()
         return node
 
-    def rename(self, what: str, name: str):
-        node = self.nodeAt(what)
+    def renameNode(self, node: Node, name: str):
         raiseIfBadName(name)
         node.rename(name)
+
+    def rename(self, what: str, name: str):
+        self.renameNode(self.nodeAt(what), name)
 
     def moveNode(self, node: Node, to: str):
         newparent = self.dirAtCN(to)
@@ -357,10 +359,12 @@ class FileSystem:
     def move(self, what: str, to: str):
         self.moveNode(self.nodeAt(what), to)
 
-    def copy(self, what: str, to: str) -> Node:
-        node = self.nodeAt(what)
+    def copyNode(self, node: Node, to: str) -> Node:
         newparent = self.dirAtCN(to)
         return node.copy(newparent)
+
+    def copy(self, what: str, to: str) -> Node:
+        return self.copyNode(self.nodeAt(what), to)
 
     def fill(self, paths_types: list):
         for pt in paths_types:

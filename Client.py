@@ -99,8 +99,18 @@ def remove(path: str):
         return
 
 
-def rename(what: str, to: str):
-    if CallVFS(FS.rename, (what, to)):
+def rename(what: str, name: str):
+    # if CallVFS(FS.rename, (what, name)):
+    #     return
+    try:
+        node = FS.nodeAt(what)
+        what = node.getPath()
+        if node.isDir:
+            print(f'\'%s\' is a directory, renaming directories is not supported yet' % what)
+            return
+        FS.renameNode(node, name)
+    except VFSException as e:
+        print(e)
         return
 
 
@@ -111,9 +121,12 @@ def move(what: str, to: str):
         if node.isRoot:
             print(f'Root directory cannot be removed')
             return
-        if node.isDir and FS.isCWDAncestor(node):
-            print(f'\'%s\' cannot be removed from current working directory' % what)
+        if node.isDir:
+            print(f'\'%s\' is a directory, moving directories is not supported yet' % what)
             return
+        # if node.isDir and FS.isCWDAncestor(node):
+        #     print(f'\'%s\' cannot be moved from current working directory' % what)
+        #     return
         FS.moveNode(node, to)
     except VFSException as e:
         print(e)
@@ -121,7 +134,17 @@ def move(what: str, to: str):
 
 
 def copy(what: str, to: str):
-    if CallVFS(FS.copy, (what, to)):
+    # if CallVFS(FS.copy, (what, to)):
+    #     return
+    try:
+        node = FS.nodeAt(what)
+        what = node.getPath()
+        if node.isDir:
+            print(f'\'%s\' is a directory, copying directories is not supported yet' % what)
+            return
+        FS.copyNode(node, to)
+    except VFSException as e:
+        print(e)
         return
 
 
@@ -136,16 +159,17 @@ Command.one('abs', str, absPath)
 Command.zero('walk', lambda: print(*FS.walk(), sep='\n'))
 
 Command.zero('update', update)
-Command.zero('flush', lambda: flush)
+Command.zero('flush', flush)
 Command.one('mkfile', str, lambda path: create(path, False))
 Command.one('mkdir', str, lambda path: create(path, True))
 Command.one('rm', str, remove)
-Command.single('re', 2, (str, str), rename)
-Command.single('mv', 2, (str, str), move)
-Command.single('cp', 2, (str, str), copy)
+Command.add('re', 2, (str, str), rename)
+Command.add('mv', 2, (str, str), move)
+Command.add('cp', 2, (str, str), copy)
 
-Command.single('download', 2, (str, str), lambda virt, real: None)
-Command.single('upload', 2, (str, str), lambda real, virt: None)
+Command.one('info', str, lambda path: None)
+Command.add('download', 2, (str, str), lambda virt, real: None)
+Command.add('upload', 2, (str, str), lambda real, virt: None)
 
 
 def prompt() -> str:

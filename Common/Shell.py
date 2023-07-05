@@ -81,7 +81,7 @@ class Command:
         Commands[name] = self
 
     @staticmethod
-    def single(name: str, args_n: int, arg_types: tuple, func):
+    def add(name: str, args_n: int, arg_types: tuple, func):
         if name in Commands:
             cmd = Commands[name]
             if args_n in cmd.args_n:
@@ -95,11 +95,11 @@ class Command:
 
     @staticmethod
     def zero(name: str, func):
-        return Command.single(name, 0, (), func)
+        return Command.add(name, 0, (), func)
 
     @staticmethod
     def one(name: str, argtype, func):
-        return Command.single(name, 1, (argtype,), func)
+        return Command.add(name, 1, (argtype,), func)
 
     def run(self, args: list):
         # Check the number of arguments
