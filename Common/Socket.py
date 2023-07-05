@@ -170,6 +170,7 @@ def SendBytes(sock: socket, bts: bytes):
 def RecvBytes(sock: socket) -> bytes:
     # Get number of bytes
     size = RecvULong(sock)
+    print(size)
     result = []
     if size > 0:
         # Get number of chunks
@@ -178,9 +179,12 @@ def RecvBytes(sock: socket) -> bytes:
         for i in range(chunks - 1):
             this = RecvChunk(sock)
             result.append(this)
+            print(len(this), ChunkSize)
         # Last chunk will have different size, calculate it
         this = _recv(sock, size - (chunks - 1) * ChunkSize)
+        print(len(this), size - (chunks - 1) * ChunkSize)
         result.append(this)
+    print(len(b''.join(result)))
     return b''.join(result)
 
 
