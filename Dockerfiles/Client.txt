@@ -1,0 +1,21 @@
+FROM python:3.7-alpine
+
+RUN apk add --no-cache bash
+
+
+COPY Client.py               /dfs-client/code/Client.py
+COPY Common                  /dfs-client/code/Common
+
+COPY CNProtocol/common.py    /dfs-client/code/CNProtocol/common.py
+COPY CNProtocol/client.py    /dfs-client/code/CNProtocol/client.py
+
+COPY SProtocol/common.py     /dfs-client/code/SProtocol/common.py
+COPY SProtocol/CSP/common.py /dfs-client/code/SProtocol/CSP/common.py
+COPY SProtocol/CSP/client.py /dfs-client/code/SProtocol/CSP/client.py
+
+
+VOLUME /dfs-client
+
+WORKDIR /dfs-client
+
+CMD ["python", "code/Client.py"]

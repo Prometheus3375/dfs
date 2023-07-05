@@ -1,0 +1,27 @@
+FROM python:3.7-alpine
+
+RUN apk add --no-cache bash
+
+
+COPY StorageServer.py         /dfs-storage/code/StorageServer.py
+COPY Common                   /dfs-storage/code/Common
+COPY SServer                  /dfs-storage/code/SServer
+
+COPY SProtocol/common.py      /dfs-storage/code/SProtocol/common.py
+COPY SProtocol/storage.py     /dfs-storage/code/SProtocol/storage.py
+
+COPY SProtocol/CSP/common.py  /dfs-storage/code/SProtocol/CSP/common.py
+COPY SProtocol/CSP/storage.py /dfs-storage/code/SProtocol/CSP/storage.py
+
+COPY SProtocol/NSP/common.py  /dfs-storage/code/SProtocol/NSP/common.py
+COPY SProtocol/NSP/storage.py /dfs-storage/code/SProtocol/NSP/storage.py
+
+COPY SProtocol/SSP            /dfs-storage/code/SProtocol/SSP
+
+VOLUME /dfs-storage
+
+EXPOSE 9001
+
+WORKDIR /dfs-storage
+
+CMD ["python", "code/StorageServer.py"]

@@ -1,0 +1,23 @@
+FROM python:3.7-alpine
+
+RUN apk add --no-cache bash
+
+
+COPY NameServer.py           /dfs-server/code/NameServer.py
+COPY Common                  /dfs-server/code/Common
+COPY NServer                 /dfs-server/code/NServer
+
+COPY CNProtocol/common.py    /dfs-server/code/CNProtocol/common.py
+COPY CNProtocol/server.py    /dfs-server/code/CNProtocol/server.py
+
+COPY SProtocol/common.py     /dfs-server/code/SProtocol/common.py
+COPY SProtocol/NSP/common.py /dfs-server/code/SProtocol/NSP/common.py
+COPY SProtocol/NSP/server.py /dfs-server/code/SProtocol/NSP/server.py
+
+VOLUME /dfs-server
+
+EXPOSE 9000
+
+WORKDIR /dfs-server
+
+CMD ["python", "code/NameServer.py"]
