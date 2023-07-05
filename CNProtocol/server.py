@@ -1,8 +1,8 @@
 import SProtocol.NSP.server as NSP
 from CNProtocol.common import *
-from Common import Logger as _loggerclass
 from Common.Constants import ReplicationFactor
 from Common.JobEx import SendJob
+from Common.Logger import Logger as _loggerclass
 from Common.Socket import SocketError, SendULong
 from Common.VFS import VFSException
 from NServer import Jobs
@@ -10,7 +10,7 @@ from NServer.FileSystems import Actual
 from NServer.Storage import GetAliveServers, GetASWithPath, GetStorage
 
 # region Common
-Logger = ...
+Logger: _loggerclass = ...
 
 
 def SetLogger(logger: _loggerclass):
@@ -42,13 +42,13 @@ def CallNSP(ip: str, func, *args):
     try:
         return func(ip, *args)
     except NSP.NSPException as e:
-        Logger.add('A protocol error occurred during connecting to storage %s: ' % ip + str(e))
+        Logger.addError('A protocol error occurred during connecting to storage %s' % ip, e)
     except SocketError as e:
-        Logger.add('A socket error occurred during connecting to storage %s: ' % ip + str(e))
+        Logger.addError('A socket error occurred during connecting to storage %s' % ip, e)
     except VFSException as e:
-        Logger.add('A VFS error occurred during connecting to storage %s: ' % ip + str(e))
+        Logger.addError('A VFS error occurred during connecting to storage %s' % ip, e)
     except Exception as e:
-        Logger.add('An unknown error occurred during connecting to storage %s: ' % ip + str(e))
+        Logger.addError('An unknown error occurred during connecting to storage %s' % ip, e)
 
 
 def ServeClient(sock: socket):

@@ -9,7 +9,7 @@ from Common.Socket import SocketError, CheckIP
 from Common.VFS import FileSystem, VFSException, Node, Dir
 
 FS = FileSystem()
-Server = ...  # is set in SetServer
+Server: tuple = ...  # is set in SetServer
 CallVFSOutput = ...  # is set in CallVFS
 CallCNPOutput = ...  # is set in CallCNP
 DateTimeFormat = '%c'

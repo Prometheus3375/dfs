@@ -2,14 +2,14 @@ import functools
 import os.path as ospath
 
 import SServer.FSFuncs as FS
-from Common import Logger as _loggerclass
 from Common.Constants import StorageServerPort
 from Common.JobEx import SendJob
+from Common.Logger import Logger as _loggerclass
 from Common.Socket import connection, RecvBytes, RecvULong
 from SProtocol.common import SendWMI, StorageServer
 from .common import *
 
-Logger = ...
+Logger: _loggerclass = ...
 
 
 def SetLogger(logger: _loggerclass):

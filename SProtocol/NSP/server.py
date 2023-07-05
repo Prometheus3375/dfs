@@ -1,9 +1,9 @@
 import functools
 from threading import Thread
 
-from Common import Logger as _loggerclass
 from Common.Constants import StorageServerPort
 from Common.JobEx import SendJob
+from Common.Logger import Logger as _loggerclass
 from Common.Socket import connection, RecvULong, SocketError
 from Common.VFS import Join, VFSException
 from NServer import Jobs
@@ -11,7 +11,7 @@ from NServer.Storage import GetStorage, GetASNoPath, GetASWithPath
 from SProtocol.NSP.common import *
 from SProtocol.common import *
 
-Logger = ...
+Logger: _loggerclass = ...
 
 
 def SetLogger(logger: _loggerclass):
@@ -198,13 +198,13 @@ def _replicate_from_one(loader: str, paths: list):
                 # Break if all replicated
                 if not paths: break
         except NSPException as e:
-            Logger.add('A protocol error occurred during connecting to storage %s: ' % ip + str(e))
+            Logger.addError('A protocol error occurred during connecting to storage %s' % ip, e)
         except SocketError as e:
-            Logger.add('A socket error occurred during connecting to storage %s: ' % ip + str(e))
+            Logger.addError('A socket error occurred during connecting to storage %s' % ip, e)
         except VFSException as e:
-            Logger.add('A VFS error occurred during connecting to storage %s: ' % ip + str(e))
+            Logger.addError('A VFS error occurred during connecting to storage %s' % ip, e)
         except Exception as e:
-            Logger.add('An unknown error occurred during connecting to storage %s: ' % ip + str(e))
+            Logger.addError('An unknown error occurred during connecting to storage %s' % ip, e)
         Jobs.complete(job)
     return paths
 

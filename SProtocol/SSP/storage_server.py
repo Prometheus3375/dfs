@@ -3,12 +3,12 @@ from math import ceil
 
 import SServer.FSFuncs as FS
 import SServer.Jobs as Jobs
-from Common import Logger as _loggerclass
 from Common.JobEx import RecvJob
+from Common.Logger import Logger as _loggerclass
 from Common.Socket import SendULong, SendBytes
 from .common import *
 
-Logger = ...
+Logger: _loggerclass = ...
 
 
 def SetLogger(logger: _loggerclass):

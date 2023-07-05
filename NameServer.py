@@ -14,7 +14,7 @@ from NServer.FileSystems import SaveActual, LoadActual
 LogFile = 'Nlog.txt'
 Logger = ServerLogger(LogFile, not TEST)
 SafeLock = Lock()  # One user at a time
-ClientSocket = ...  # set in incoming
+ClientSocket: socket = ...  # set in incoming
 
 
 def serve(sock: socket, host: tuple):
@@ -24,15 +24,15 @@ def serve(sock: socket, host: tuple):
         try:
             CNP.ServeClient(sock)
         except SocketError as e:
-            Logger.add('A socket error occurred during serving %s: ' % host + str(e))
+            Logger.addError('A socket error occurred during serving %s: ' % host, e)
         except CNP.CNPException as e:
-            Logger.add('Client-NameServer protocol error occurred during serving %s: ' % host + str(e))
+            Logger.addError('Client-NameServer protocol error occurred during serving %s: ' % host, e)
         except NSP.NSPException as e:
-            Logger.add('NameServer-StorageServer protocol error occurred during serving %s: ' % host + str(e))
+            Logger.addError('NameServer-StorageServer protocol error occurred during serving %s: ' % host, e)
         except VFSException as e:
-            Logger.add('A VFS error occurred during serving %s: ' % host + str(e))
+            Logger.addError('A VFS error occurred during serving %s: ' % host, e)
         except Exception as e:
-            Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
+            Logger.addError('A unknown error occurred during serving %s: ' % host, e)
         finally:
             Logger.add(host + ' has disconnected')
             Jobs.abort(sock)
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         Logger.add('Application was interrupted')
     except Exception as e:
-        Logger.add('An error occurred: ' + str(e))
+        Logger.addError('An error occurred', e)
     finally:
         SaveActual()
         Storage.SaveStorageData()

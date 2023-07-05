@@ -1,4 +1,5 @@
 import os
+import traceback
 from datetime import datetime
 
 from Common.ClassWithLock import CreateClassWithLock
@@ -26,6 +27,10 @@ class Logger:
 
     def addHost(self, ip: str, port: int, info: str):
         self.add(ip + ':%d ' % port + info)
+
+    def addError(self, pre: str, e: Exception):
+        traces = '\n'.join(traceback.format_tb(e.__traceback__))
+        self.add(pre + ': ' + str(e) + ' {\n' + traces + '}')
 
 
 class ServerLogger(Logger): pass

@@ -9,7 +9,7 @@ from Common.Socket import BindAndListen, Accept, socket, SocketError, CheckIP
 
 LogPath = 'Slog.txt'
 Logger = ServerLogger(LogPath, not TEST)
-MainSocket = ...
+MainSocket: socket = ...
 
 
 def serve(sock: socket, host: tuple):
@@ -18,13 +18,13 @@ def serve(sock: socket, host: tuple):
     try:
         SP.Serve(sock, Logger)
     except SocketError as e:
-        Logger.add('A socket error occurred during serving %s: ' % host + str(e))
+        Logger.addError('A socket error occurred during serving %s' % host, e)
     except SP.SPException as e:
-        Logger.add('A protocol error occurred during serving %s: ' % host + str(e))
+        Logger.addError('A protocol error occurred during serving %s' % host, e)
     except OSError as e:
-        Logger.add('An OS error occurred during serving %s: ' % host + str(e))
-    # except Exception as e:
-    #     Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
+        Logger.addError('An OS error occurred during serving %s' % host, e)
+    except Exception as e:
+        Logger.addError('A unknown error occurred during serving %s' % host, e)
     finally:
         Logger.add(host + ' has disconnected')
         Jobs.AbortJob(sock)
@@ -58,6 +58,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         Logger.add('Application was interrupted')
     except Exception as e:
-        Logger.add('An error occurred: ' + str(e))
+        Logger.addError('An error occurred', e)
     finally:
         MainSocket.close()

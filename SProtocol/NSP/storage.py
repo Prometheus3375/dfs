@@ -3,13 +3,13 @@ import os.path as ospath
 import SProtocol.SSP.storage_client as SSP
 import SServer.FSFuncs as FS
 import SServer.Jobs as Jobs
-from Common import Logger as _loggerclass
 from Common.JobEx import RecvJob
+from Common.Logger import Logger as _loggerclass
 from Common.Socket import SendULong
 from SProtocol.NSP.common import *
 
-Logger = ...
-PublicIP = ...
+Logger: _loggerclass = ...
+PublicIP: str = ...
 
 
 def SetLogger(logger: _loggerclass):
