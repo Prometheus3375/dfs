@@ -1,6 +1,6 @@
 import functools
 from math import ceil
-from socket import socket, AF_INET, SOCK_STREAM, error as _error
+from socket import socket, error as _error, AF_INET, SOCK_STREAM
 from struct import *
 
 from .Misc import EnumCode, MyError

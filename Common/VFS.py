@@ -11,16 +11,16 @@ Walk_PathTypeSep = '\t'
 def raiseIfBadPath(path: str):
     for c in BadPathChars:
         if c in path:
-            raise VFSException(f'\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
+            raise VFSException('\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
                                % (path, '\', \''.join(BadPathChars)))
 
 
 def raiseIfBadName(name: str):
     if name == '.' or name == '..':
-        raise VFSException(f'\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
+        raise VFSException('\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
     for c in BadNameChars:
         if c in name:
-            raise VFSException(f'\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
+            raise VFSException('\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
                                % (name, '\', \''.join(BadNameChars)))
 
 
@@ -51,7 +51,7 @@ class Node:
         return RootName + path
 
     def raiseIfFile(self):
-        raise VFSException(f'\'%s\' is not a directory' % self.getPath())
+        raise VFSException('\'%s\' is not a directory' % self.getPath())
 
     def delete(self):
         self.parent._remove(self)
@@ -69,7 +69,7 @@ class Node:
         newparent.raiseIfFile()
         # Check if new parent can contain this node
         if self.name in newparent:
-            raise VFSException(f'\'%s\' already contains \'%s\'' % (newparent.getPath(), self.name))
+            raise VFSException('\'%s\' already contains \'%s\'' % (newparent.getPath(), self.name))
 
     def _move(self, newparent):
         # Remove node from old parent
@@ -88,7 +88,7 @@ class Node:
         newparent.raiseIfFile()
         # Check if new parent can contain this node
         if self.name in newparent:
-            raise VFSException(f'\'%s\' already contains \'%s\'' % (newparent.getPath(), self.name))
+            raise VFSException('\'%s\' already contains \'%s\'' % (newparent.getPath(), self.name))
 
     def _copy(self, newparent):
         # Create a clone
@@ -153,11 +153,11 @@ class Dir(Node):
         Node._canBeMoved(self, newparent)
         # Check if new parent is not self
         if newparent is self:
-            raise VFSException(f'\'%s\' cannot be moved to itself' % self.getPath())
+            raise VFSException('\'%s\' cannot be moved to itself' % self.getPath())
         # Check if new parent is not a subdirectory
         if newparent in self.allSubdirs():
             raise VFSException(
-                f'\'%s\' cannot be moved to its subdirectory \'%s\'' % (self.getPath(), newparent.getPath())
+                '\'%s\' cannot be moved to its subdirectory \'%s\'' % (self.getPath(), newparent.getPath())
             )
 
     def _copy(self, newparent):
@@ -173,7 +173,7 @@ class Dir(Node):
 
     def add(self, name: str, isDir: bool) -> Node:
         if name in self:
-            raise VFSException(f'\'%s\' already contains \'%s\'' % (self.getPath(), name))
+            raise VFSException('\'%s\' already contains \'%s\'' % (self.getPath(), name))
         new = Node.new(name, self, isDir)
         self._add(new)
         return new
@@ -235,6 +235,7 @@ class FileSystem:
             if cwd.isDir and name in cwd:
                 cwd = cwd[name]
             else:
+                # noinspection PyTypeChecker
                 return None
         return cwd
 
@@ -242,11 +243,12 @@ class FileSystem:
         node = self._nodeAt(path)
         if node:
             return node
-        raise VFSException(f'\'%s\' does not exist' % path)
+        raise VFSException('\'%s\' does not exist' % path)
 
     def dirAt(self, path: str) -> Dir:
         node = self.nodeAt(path)
         node.raiseIfFile()
+        # noinspection PyTypeChecker
         return node
 
     def dirAtCN(self, path: str) -> Dir:
@@ -280,6 +282,7 @@ class FileSystem:
     def isEmpty(self, path: str) -> bool:
         node = self._nodeAt(path)
         if node and node.isDir:
+            # noinspection PyUnresolvedReferences
             return node.isEmpty()
         return True
 
@@ -318,6 +321,9 @@ class FileSystem:
             return lastname not in cwd
         except VFSException:
             return False
+
+    def cantBeAdded(self, path: str) -> bool:
+        return not self.canBeAdded(path)
 
     def add(self, path: str, isDir: bool) -> Node:
         cwd, nodes = self.parsePath(path)

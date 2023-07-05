@@ -1,9 +1,9 @@
-from socket import SOL_SOCKET, SO_REUSEADDR
 from threading import Thread
 
+import CNProtocol.server as CNP
 import NServer.Logger as Logger
-from CNProtocol.server import *
 from Common.Constants import *
+from Common.Socket import SOL_SOCKET, SO_REUSEADDR, socket, AF_INET, SOCK_STREAM, SocketError
 
 
 class Listener(Thread):
@@ -11,16 +11,16 @@ class Listener(Thread):
         super().__init__(daemon=True)
         self.sock = sock
         self.ip, self.port = addr
-        self.host = f'%s:%d' % addr
+        self.host = '%s:%d' % addr
         Logger.add(self.host + ' has connected')
 
     def run(self):
         sock = self.sock
         try:
-            RecvCommand(sock)
+            CNP.RecvCommand(sock)
         except SocketError as e:
             Logger.add('A socket error occurred during serving %s: ' % self.host + str(e))
-        except CNPException as e:
+        except CNP.CNPException as e:
             Logger.add('A protocol error occurred during serving %s: ' % self.host + str(e))
         except Exception as e:
             Logger.add('A unknown error occurred during serving %s: ' % self.host + str(e))
@@ -32,7 +32,7 @@ class Listener(Thread):
 def incoming():
     sock = socket(AF_INET, SOCK_STREAM)
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    sock.bind(('', NameServerPort))
+    sock.bind(('', NameServerClientPort))
     sock.listen()
     while True:
         client_sock, addr = sock.accept()

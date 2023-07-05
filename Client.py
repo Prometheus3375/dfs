@@ -5,14 +5,14 @@ import CNProtocol.сlient as CNP
 from Common.Constants import *
 from Common.Shell import shell, Command, User
 from Common.Socket import SocketError, Error_Other
-from Common.VFS import FileSystem, VFSException
+from Common.VFS import FileSystem, VFSException, Node
 
 FS = FileSystem()
 Server = ...  # is set in main
 CallVFSOutput = ...  # is set in CallVFS
 
 
-def CallVFS(func, args):
+def CallVFS(func, *args):
     try:
         global CallVFSOutput
         CallVFSOutput = func(*args)
@@ -24,11 +24,11 @@ def CallVFS(func, args):
 
 # region No connect
 def changeCWD(path: str):
-    CallVFS(FS.cd, (path,))
+    CallVFS(FS.cd, path)
 
 
 def listDir(path: str):
-    if CallVFS(FS.ls, (path,)):
+    if CallVFS(FS.ls, path):
         return
     entities = CallVFSOutput
     names, types = entities
@@ -46,7 +46,7 @@ def listDir(path: str):
 
 
 def absPath(path: str):
-    if not CallVFS(FS.absPath, (path,)):
+    if not CallVFS(FS.absPath, path):
         print(CallVFSOutput)
 
 
@@ -55,6 +55,7 @@ def absPath(path: str):
 def update():
     try:
         paths_types = CNP.update(Server)
+        FS.flush()
         FS.fillFromLines(paths_types)
     except SocketError as e:
         if e.code == Error_Other:
@@ -71,10 +72,16 @@ def flush():
 
 def create(path: str, isDir: bool):
     if path == FS.RootPath:
-        print(f'Root directory already exists')
+        print('Root directory already exists')
         return
-    if CallVFS(FS.add, (path, isDir)):
+    if CallVFS(FS.add, path, isDir):
         return
+    node: Node = CallVFSOutput
+    path = node.getPath()
+    try:
+        CNP.create(Server, path, isDir)
+    except (CNP.CNPException, SocketError) as e:
+        print(e)
 
 
 def remove(path: str):
@@ -82,14 +89,16 @@ def remove(path: str):
         node = FS.nodeAt(path)
         path = node.getPath()
         if node.isRoot:
-            print(f'Root directory cannot be removed')
+            print('Root directory cannot be removed')
             return
         if node.isDir:
+            # noinspection PyTypeChecker
             if FS.isCWDAncestor(node):
-                print(f'\'%s\' cannot be removed from current working directory' % path)
+                print('\'%s\' cannot be removed from current working directory' % path)
                 return
+            # noinspection PyUnresolvedReferences
             if not node.isEmpty():
-                confirm = input(f'\'%s\' is not empty. Are you sure? [Y\\n]: ' % path).lower()
+                confirm = input('\'%s\' is not empty. Are you sure? [Y\\n]: ' % path).lower()
                 if confirm != 'y':
                     print('Operation aborted')
                     return
@@ -100,13 +109,13 @@ def remove(path: str):
 
 
 def rename(what: str, name: str):
-    # if CallVFS(FS.rename, (what, name)):
+    # if CallVFS(FS.rename, what, name):
     #     return
     try:
         node = FS.nodeAt(what)
         what = node.getPath()
         if node.isDir:
-            print(f'\'%s\' is a directory, renaming directories is not supported yet' % what)
+            print('\'%s\' is a directory, renaming directories is not supported yet' % what)
             return
         FS.renameNode(node, name)
     except VFSException as e:
@@ -119,13 +128,13 @@ def move(what: str, to: str):
         node = FS.nodeAt(what)
         what = node.getPath()
         if node.isRoot:
-            print(f'Root directory cannot be removed')
+            print('Root directory cannot be removed')
             return
         if node.isDir:
-            print(f'\'%s\' is a directory, moving directories is not supported yet' % what)
+            print('\'%s\' is a directory, moving directories is not supported yet' % what)
             return
         # if node.isDir and FS.isCWDAncestor(node):
-        #     print(f'\'%s\' cannot be moved from current working directory' % what)
+        #     print('\'%s\' cannot be moved from current working directory' % what)
         #     return
         FS.moveNode(node, to)
     except VFSException as e:
@@ -134,13 +143,13 @@ def move(what: str, to: str):
 
 
 def copy(what: str, to: str):
-    # if CallVFS(FS.copy, (what, to)):
+    # if CallVFS(FS.copy, what, to):
     #     return
     try:
         node = FS.nodeAt(what)
         what = node.getPath()
         if node.isDir:
-            print(f'\'%s\' is a directory, copying directories is not supported yet' % what)
+            print('\'%s\' is a directory, copying directories is not supported yet' % what)
             return
         FS.copyNode(node, to)
     except VFSException as e:
@@ -190,7 +199,7 @@ def main():
                 continue
         break
     global Server
-    Server = ip, NameServerPort
+    Server = ip, NameServerClientPort
     # Get VFS
     update()
     # Start shell

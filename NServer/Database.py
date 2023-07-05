@@ -22,7 +22,7 @@ class Table:
             try:
                 row[i] = self.types[i](row[i])
             except ValueError:
-                print(f'Type of the %s value must be %s' % (num2order(i + 1), self.types[i].__name__))
+                print('Type of the %s value must be %s' % (num2order(i + 1), self.types[i].__name__))
                 return False
         # Add row
         self.table.append(row)

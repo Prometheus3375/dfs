@@ -1,2 +1,2 @@
 TEST = True
-NameServerPort = 8080
+NameServerClientPort = 8080

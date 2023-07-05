@@ -14,6 +14,8 @@ Command_Info = RemoteCommands('info')
 Command_Download = RemoteCommands('download')
 Command_Upload = RemoteCommands('upload')
 
+SUCCESS = ''
+
 
 class CNPException(MyException):
     pass

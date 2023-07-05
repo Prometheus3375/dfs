@@ -1,12 +1,20 @@
 def num2order(i: int) -> str:
     if 10 > i > 20:
         if i % 10 == 1:
-            return f'%dst' % i
+            return '%dst' % i
         if i % 10 == 2:
-            return f'%dnd' % i
+            return '%dnd' % i
         if i % 10 == 3:
-            return f'%drd' % i
-    return f'%dth' % i
+            return '%drd' % i
+    return '%dth' % i
+
+
+def GetPubPM(cls, parent) -> dict:
+    """Returns all public methods from parent which are not present in class"""
+    return {
+        k: v for k, v in parent.__dict__.items()
+        if k not in cls.__dict__ and k[0] != '_' and callable(v)
+    }
 
 
 class Enum:

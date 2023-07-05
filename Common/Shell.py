@@ -58,7 +58,7 @@ class Command:
         # Check the number of args and the number of types
         for n, types in zip(args_n, arg_types):
             if n != len(types):
-                raise ValueError(f'The number of types for arguments of command \'%s\' must be %d, got %d'
+                raise ValueError('The number of types for arguments of command \'%s\' must be %d, got %d'
                                  % name, n, len(types))
         # Add command
         self.args_n = list(args_n)
@@ -68,15 +68,15 @@ class Command:
         # Make invalid argument number error message
         if l > 1:
             args_n = [str(i) for i in self.args_n]
-            self.ian = f'Possible number of arguments for command \'%s\': ' % name + ', '.join(args_n)
+            self.ian = 'Possible number of arguments for command \'%s\': ' % name + ', '.join(args_n)
         else:
             args_n = args_n[0]
             if args_n == 0:
-                self.ian = f'Command \'%s\' requires no arguments' % name
+                self.ian = 'Command \'%s\' requires no arguments' % name
             elif args_n == 1:
-                self.ian = f'Command \'%s\' requires 1 argument' % name
+                self.ian = 'Command \'%s\' requires 1 argument' % name
             else:
-                self.ian = f'Command \'%s\' requires %d arguments' % (name, args_n)
+                self.ian = 'Command \'%s\' requires %d arguments' % (name, args_n)
         # Add command to dict
         Commands[name] = self
 
@@ -114,7 +114,7 @@ class Command:
                 try:
                     args[i] = types[i](args[i])
                 except ValueError:
-                    print(f'Type of the %s argument must be %s' % (num2order(i + 1), types[i].__name__))
+                    print('Type of the %s argument must be %s' % (num2order(i + 1), types[i].__name__))
                     return
         # Run command function
         self.funcs[l](*args)
