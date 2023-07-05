@@ -51,7 +51,7 @@ def GetNameList(path: str) -> list:
 
 
 def _convert_path(path: str) -> str:
-    return root_dir + path if path[0] == sep else root_dir + sep + path
+    return ospath.join(root_dir, path)
 
 
 @_lock
@@ -81,6 +81,8 @@ def CreateFile(path: str):
     path = Create(path)
     if os.listdir(path):
         _remove(path)
+        # Small pause before recreating, without it OSError invoked randomly
+        sleep(0.1)
         os.mkdir(path)
     return path
 

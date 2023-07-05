@@ -74,13 +74,13 @@ def CallCNP(func, *args, print_response: bool = True) -> bool:
         CallCNPOutput = re
         return False
     except SocketError as e:
-        print('Socket error occurred:', e)
+        print('\nSocket error occurred:', e)
     except CNP.CNPException as e:
-        print('Client-NameServer protocol error occurred:', e)
+        print('\nClient-NameServer protocol error occurred:', e)
     except CSP.CSPException as e:
-        print('Client-StorageServer protocol error occurred:', e)
+        print('\nClient-StorageServer protocol error occurred:', e)
     except Exception as e:
-        print('An unknown error occurred:', e)
+        print('\nAn unknown error occurred:', e)
     return True
 
 

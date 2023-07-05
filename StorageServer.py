@@ -23,8 +23,8 @@ def serve(sock: socket, host: tuple):
         Logger.add('A protocol error occurred during serving %s: ' % host + str(e))
     except OSError as e:
         Logger.add('An OS error occurred during serving %s: ' % host + str(e))
-    except Exception as e:
-        Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
+    # except Exception as e:
+    #     Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
     finally:
         Logger.add(host + ' has disconnected')
         Jobs.AbortJob(sock)
