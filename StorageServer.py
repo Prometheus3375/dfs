@@ -28,7 +28,7 @@ def serve(sock: socket, host: tuple):
 
 def SetPublicIP():
     while True:
-        ip = input('Input public IP address or domain name of this server: ').strip()
+        ip = 'localhost' if TEST else input('Input public IP address or domain name of this server: ').strip()
         # Check IP or domain
         ip = CheckIP(ip)
         if ip: break

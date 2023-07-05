@@ -42,9 +42,9 @@ class Listener(Thread):
                 sock.close()
 
 
-def InputLocalNet():
+def SetLocalNet():
     while True:
-        net = input('Input network address where storages are situated: ').strip()
+        net = '127.0.0.0/31' if TEST else input('Input network address where storages are situated: ').strip()
         # Check IP or domain
         res = CheckNet(net)
         if not res:
@@ -66,7 +66,7 @@ def main():
     CNP.SetLogger(Logger)
     NSP.SetLogger(Logger)
     LoadActual()
-    InputLocalNet()
+    SetLocalNet()
     StartFinder()
     # Thread(daemon=True, target=incoming).start()
     incoming()

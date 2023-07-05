@@ -181,8 +181,7 @@ def flush():
 
 
 # endregion
-
-
+# region Commands
 Command.zero('exit', lambda: exit(0))
 Command.one('cd', str, changeCWD)
 Command.zero('ls', lambda: listDir('.'))
@@ -204,13 +203,12 @@ Command.add('upload', 2, (str, str), lambda real, virt: None)
 Command.add('download', 2, (str, str), lambda virt, real: None)
 
 
-def prompt() -> str:
-    return User + ':' + FS.CWDPath + '$ '
+# endregion
 
 
 def SetServer():
     while True:
-        ip = input('Input DFS server IP address or domain name: ').strip()
+        ip = 'localhost' if TEST else input('Input DFS server IP address or domain name: ').strip()
         # Check IP or domain
         ip = CheckIP(ip)
         if ip: break
@@ -225,7 +223,7 @@ def main():
     # Get VFS
     update()
     # Start shell
-    shell(prompt)
+    shell(lambda: User + ':' + FS.CWDPath + '$ ')
 
 
 if __name__ == '__main__':
