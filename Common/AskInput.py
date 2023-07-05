@@ -30,13 +30,14 @@ def GetNet(path: str, prompt: str) -> str:
     if ospath.isfile(path):
         with open(path, 'r', encoding='utf-8') as f:
             net = f.read().strip()
-        net = CheckNet(net)
+        if CheckNet(net):
+            net = ''
     # If read net is invalid, ask it
     if not net:
         prompt += ': '
         while True:
             net = input(prompt).strip()
-            # Check IP or domain
+            # Check net
             res = CheckNet(net)
             if not res:
                 break
