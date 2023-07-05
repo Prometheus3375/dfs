@@ -192,7 +192,7 @@ def copy(what: str, to: str):
 def flush():
     if not CallCNP(CNP.flush, print_response=False):
         FS.flush()
-        print(f'Available space: {CallCNPOutput // (2 ** 30)} GiB')
+        print('Available space: %.2f GiB' % (CallCNPOutput / (2 ** 30)))
 
 
 def info(path: str):
@@ -217,7 +217,7 @@ def info(path: str):
         atime = datetime.fromtimestamp(float(stats[1]))
         ctime = datetime.fromtimestamp(float(stats[2]))
         mtime = datetime.fromtimestamp(float(stats[3]))
-        print(f'Size - {size // (2 ** 20)} MiB\n'
+        print('Size - %.2f MiB\n' % (size / (2 ** 20)) +
               f'Last access time - {atime.strftime(DateTimeFormat)}\n'
               f'Last meta change time - {ctime.strftime(DateTimeFormat)}\n'
               f'Last modification time - {mtime.strftime(DateTimeFormat)}\n'
