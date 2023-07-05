@@ -7,7 +7,7 @@ from Common.Socket import SocketError, SendULong
 from Common.VFS import VFSException
 from NServer import Jobs
 from NServer.FileSystems import Actual
-from NServer.Storage import GetAliveServers, GetASWithPath, GetStorage
+from NServer.Storage import GetAliveServers, GetASWithPath, GetStorage, FlushStorages
 
 # region Common
 Logger: _loggerclass = ...
@@ -245,6 +245,7 @@ def flush(sock: socket) -> ResultType:
     space //= ReplicationFactor
     # All OK, flush actual
     Actual.flush()
+    FlushStorages()
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has flushed storage')
     SendULong(sock, space)

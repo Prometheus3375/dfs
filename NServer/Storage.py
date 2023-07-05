@@ -128,6 +128,12 @@ def StartFinder():
 
 
 @_lock
+def FlushStorages():
+    for store in _storages.values():
+        store.flush()
+
+
+@_lock
 def GetAliveServers() -> list:
     alive = [store for store in _storages.values() if store.isAlive()]
     alive.sort(key=lambda x: x.space, reverse=True)
