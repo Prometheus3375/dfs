@@ -12,8 +12,8 @@ def num2order(i: int) -> str:
 def GetPubPM(cls, parent) -> dict:
     """Returns all public methods from parent which are not present in class"""
     return {
-        k: v for k, v in parent.__dict__.items()
-        if k not in cls.__dict__ and k[0] != '_' and callable(v)
+        k: v for k, v in vars(parent).items()
+        if k not in vars(cls) and k[0] != '_' and callable(v)
     }
 
 
