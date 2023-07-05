@@ -156,7 +156,7 @@ All commands above do not require Internet connection. Connection to the name se
 For next commands connection to storage servers is required. Necessary storage server will be given by the name server.
 
 1. `upload <local file> <path in DFS>` - uploads a file to DFS in specified path.
-2. `upload <file in DFS> <local path>` - downloads specified file from DFS.
+2. `download <file in DFS> <local path>` - downloads specified file from DFS.
 
 **Be aware that all DFS paths are converted to lower case.**
 
