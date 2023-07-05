@@ -1,4 +1,4 @@
 TEST = False
-NameServerClientPort = 8080
-StorageServerPort = 8081
+NameServerClientPort = 9000
+StorageServerPort = 9001
 ReplicationFactor = 2
