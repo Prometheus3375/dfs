@@ -139,7 +139,7 @@ def info(sock: socket) -> bool:
 def upload(sock: socket) -> bool:
     job = RecvJob(sock)
     path = RecvStr(sock)
-    j = Jobs.AddUploadJob(job, path)
+    j = Jobs.AddUploadJob(job, [path])
     SendResponse(sock, SUCCESS)
     if not j.wait(LoadTimeout):
         Jobs.CompleteJob(job)
@@ -151,7 +151,7 @@ def upload(sock: socket) -> bool:
 def download(sock: socket) -> bool:
     job = RecvJob(sock)
     path = RecvStr(sock)
-    j = Jobs.AddDownloadJob(job, path)
+    j = Jobs.AddDownloadJob(job, [path])
     SendResponse(sock, SUCCESS)
     if not j.wait(LoadTimeout):
         Jobs.CompleteJob(job)

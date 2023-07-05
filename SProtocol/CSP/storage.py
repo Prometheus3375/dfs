@@ -20,10 +20,11 @@ def ServeClient(sock: socket):
     job = RecvJob(sock)
     j = Jobs.StartJob(sock, job)
     if j:
+        path = j.paths[0]
         if j.typ == Jobs.JT_Upload:
-            upload(sock, j.path)
+            upload(sock, path)
         elif j.typ == Jobs.JT_Download:
-            download(sock, j.path)
+            download(sock, path)
         else:
             raise CSPException('Replication job passed from client %s:%d' % sock.getpeername())
     else:

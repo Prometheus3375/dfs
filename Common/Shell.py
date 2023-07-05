@@ -1,15 +1,9 @@
 import getpass
-import os
-import platform
 
 from Common.Misc import num2order
 
 User = str(getpass.getuser())
-CWD = str(os.getcwd())
-if platform.system() == 'Windows':
-    Prompt = CWD + '> '
-else:
-    Prompt = User + ':' + CWD + '$ '
+Prompt = User + '> '
 Commands = {}
 
 

@@ -24,11 +24,11 @@ def _lock(func):
 
 
 class Job:
-    def __init__(self, job: int, path: str, typ: int):
+    def __init__(self, job: int, paths: list, typ: int):
         self.typ = typ
         self.id = job
         self.event = Event()
-        self.path = path
+        self.paths = paths
         self.started = None
         _jobs[typ][job] = self
 
@@ -44,18 +44,18 @@ class Job:
 
 
 @_lock
-def AddUploadJob(job: int, path: str) -> Job:
-    return Job(job, path, JT_Upload)
+def AddUploadJob(job: int, paths: list) -> Job:
+    return Job(job, paths, JT_Upload)
 
 
 @_lock
-def AddDownloadJob(job: int, path: str) -> Job:
-    return Job(job, path, JT_Download)
+def AddDownloadJob(job: int, paths: list) -> Job:
+    return Job(job, paths, JT_Download)
 
 
 @_lock
-def AddReplicationJob(job: int, path: str) -> Job:
-    return Job(job, path, JT_Replicate)
+def AddReplicationJob(job: int, paths: list) -> Job:
+    return Job(job, paths, JT_Replicate)
 
 
 @_lock
