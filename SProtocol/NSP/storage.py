@@ -53,15 +53,19 @@ def locate(sock: socket):
 @_reg(Cmd_MKFile)
 def mkfile(sock: socket):
     path = RecvStr(sock)
-    path = FS.CreateFile(path) + '0'  # zero chunk
-    with open(path, 'wb'): pass
+    Logger.addHost(*sock.getpeername(), 'attempts to create an empty file \'%s\'' % path)
+    fpath = FS.CreateFile(path) + '0'  # zero chunk
+    with open(fpath, 'wb'): pass
+    Logger.addHost(*sock.getpeername(), 'has created \'%s\'' % path)
     SendResponse(sock, SUCCESS)
 
 
 @_reg(Cmd_Remove)
 def remove(sock: socket):
     path = RecvStr(sock)
+    Logger.addHost(*sock.getpeername(), 'attempts to remove \'%s\'' % path)
     FS.Remove(path)
+    Logger.addHost(*sock.getpeername(), 'has removed \'%s\'' % path)
     SendResponse(sock, SUCCESS)
 
 
@@ -69,5 +73,30 @@ def remove(sock: socket):
 def rename(sock: socket):
     path = RecvStr(sock)
     name = RecvStr(sock)
+    t = path, name
+    Logger.addHost(*sock.getpeername(), 'attempts to rename \'%s\' to \'%s\'' % t)
     FS.Rename(path, name)
+    Logger.addHost(*sock.getpeername(), 'has renamed \'%s\' to \'%s\'' % t)
+    SendResponse(sock, SUCCESS)
+
+
+@_reg(Cmd_Move)
+def move(sock: socket):
+    what = RecvStr(sock)
+    to = RecvStr(sock)
+    t = what, to
+    Logger.addHost(*sock.getpeername(), 'attempts to move \'%s\' to \'%s\'' % t)
+    FS.Move(what, to)
+    Logger.addHost(*sock.getpeername(), 'has moved \'%s\' to \'%s\'' % t)
+    SendResponse(sock, SUCCESS)
+
+
+@_reg(Cmd_Copy)
+def copy(sock: socket):
+    what = RecvStr(sock)
+    to = RecvStr(sock)
+    t = what, to
+    Logger.addHost(*sock.getpeername(), 'attempts to copy \'%s\' to \'%s\'' % t)
+    FS.Copy(what, to)
+    Logger.addHost(*sock.getpeername(), 'has copied \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)

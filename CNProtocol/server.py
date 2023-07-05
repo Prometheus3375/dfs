@@ -98,7 +98,7 @@ def mkfile(sock: socket) -> ResultType:
         if CallNSP(ip, NSP.mkfile, path):
             count += 1
             if count == ReplicationFactor: break
-    # None server added - no update on actual
+    # No server added - no update on actual
     if count == 0:
         SendResponse(sock, '\'%s\' cannot be created on remote' % path)
         return Result_Denied
@@ -161,7 +161,7 @@ def rename(sock: socket) -> ResultType:
     for ip in GetASWithPath(path):
         if CallNSP(ip, NSP.rename, path, name):
             count += 1
-    # None server renamed - no rename on actual
+    # No server renamed - no rename on actual
     if count == 0:
         SendResponse(sock, '\'%s\' cannot be renamed to \'%s\' on remote' % t + Mes_UpdateLocal)
         return Result_Denied
@@ -187,7 +187,14 @@ def move(sock: socket) -> ResultType:
     if _is_dir(sock, what):
         return Result_Denied
     # Can be moved
-    # TODO: gather all storage servers with path and move on them
+    count = 0
+    for ip in GetASWithPath(what):
+        if CallNSP(ip, NSP.move, what, to):
+            count += 1
+    # No server moved - no move on actual
+    if count == 0:
+        SendResponse(sock, '\'%s\' cannot be moved to \'%s\' on remote' % t + Mes_UpdateLocal)
+        return Result_Denied
     # All OK, move on actual
     Actual.move(what, to)
     # Add log and response
@@ -210,7 +217,14 @@ def copy(sock: socket) -> ResultType:
     if _is_dir(sock, what):
         return Result_Denied
     # Can be copied
-    # TODO: gather all storage servers with path and copy on them
+    count = 0
+    for ip in GetASWithPath(what):
+        if CallNSP(ip, NSP.copy, what, to):
+            count += 1
+    # No server copied - no copy on actual
+    if count == 0:
+        SendResponse(sock, '\'%s\' cannot be copied to \'%s\' on remote' % t + Mes_UpdateLocal)
+        return Result_Denied
     # All OK, copy on actual
     Actual.copy(what, to)
     # Add log and response

@@ -83,12 +83,29 @@ def Remove(path: str):
     _remove(path)
 
 
+@_lock
 def Rename(path: str, name: str):
     path = _convert_path(path)
     parent, _ = ospath.split(path)
     newpath = ospath.join(parent, name)
     _remove(newpath)
     os.rename(path, newpath)
+
+
+@_lock
+def Move(what: str, to: str):
+    what = _convert_path(what)
+    _, name = ospath.split(what)
+    to = ospath.join(Create(to), name)
+    shutil.move(what, to)
+
+
+@_lock
+def Copy(what: str, to: str):
+    what = _convert_path(what)
+    _, name = ospath.split(what)
+    to = ospath.join(Create(to), name)
+    shutil.copytree(what, to)
 
 
 @_lock

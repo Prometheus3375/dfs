@@ -39,10 +39,11 @@ def RaiseIfBadName(name: str):
                            % (name, '\', \''.join(BadNameChars)))
 
 
-def Join(names: list) -> str:
-    for name in names:
-        RaiseIfBadName(name)
-    return Separator.join([name.lower() for name in names])
+def Join(*paths) -> str:
+    for path in paths:
+        RaiseIfBadPath(path)
+    paths = [name.rstrip(Separator).lower() for name in paths]
+    return Separator.join(paths).replace(Separator * 2, Separator)
 
 
 class VFSException(MyException):

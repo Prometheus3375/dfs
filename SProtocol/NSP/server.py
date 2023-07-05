@@ -78,9 +78,41 @@ def rename(sock: socket, log: str, path: str, name: str) -> bool:
         fs = GetStorage(ip)
         names = fs.parsePath(path)[1]
         names[-1] = name
-        newpath = Join(names)
+        newpath = Join(*names)
         if newpath in fs:
             fs.remove(newpath)
         fs.rename(path, name)
+        return True
+    return False
+
+
+@_cmd(Cmd_Move)
+def move(sock: socket, log: str, what: str, to: str) -> bool:
+    SendStr(sock, what)
+    SendStr(sock, to)
+    if LogResponse(sock, log):
+        ip = sock.getpeername()[0]
+        fs = GetStorage(ip)
+        name = fs.nodeAt(what).name
+        newpath = Join(to, name)
+        if newpath in fs:
+            fs.remove(newpath)
+        fs.move(what, to)
+        return True
+    return False
+
+
+@_cmd(Cmd_Copy)
+def copy(sock: socket, log: str, what: str, to: str) -> bool:
+    SendStr(sock, what)
+    SendStr(sock, to)
+    if LogResponse(sock, log):
+        ip = sock.getpeername()[0]
+        fs = GetStorage(ip)
+        name = fs.nodeAt(what).name
+        newpath = Join(to, name)
+        if newpath in fs:
+            fs.remove(newpath)
+        fs.copy(what, to)
         return True
     return False
