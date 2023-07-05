@@ -186,7 +186,7 @@ def _replicate_from_one(loader: str, paths: list):
         if not pts: continue
         job = Jobs.new()
         try:
-            if do_replicate(loader, job, pts):
+            if do_replicate(ip, loader, job, pts):
                 # Success, update storage data
                 fs = GetStorage(ip)
                 for p in pts:
