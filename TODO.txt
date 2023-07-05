@@ -1,0 +1,10 @@
+Storage
+1. Handle fails in FSFuncs for storage.
+2. Respond to NameServer on fail.
+NameServer
+1. Remove paths on Storages if storage server rejects connection or respond 'NoSuchFile'. Must be done in replication and in CNProtocol.
+Client
+1. Handle more errors.
+General
+1. Errorcodes.
+2. Better VFS.
