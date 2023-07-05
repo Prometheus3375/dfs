@@ -1,4 +1,5 @@
 import os.path as ospath
+from _socket import SHUT_WR
 from math import ceil
 
 import SServer.FSFuncs as FS
@@ -47,14 +48,15 @@ def replicate(sock: socket, paths: list):
         # Get valid path
         validpath = FS.GetValidPath(path)
         # Get all bytes
-        bts = b''
+        bts = []
         for i in range(chunks):
             fpath = ospath.join(validpath, str(i))
             with open(fpath, 'rb') as f:
-                bts += f.read()
+                bts.append(f.read())
         # Send everything
-        SendBytes(sock, bts)
+        SendBytes(sock, b''.join(bts))
         # Wait till other storage will be ready
         RecvSignal(sock)
         Logger.addHost(*sock.getpeername(), 'has replicated file \'%s\'' % path)
+    sock.shutdown(SHUT_WR)
     Logger.addHost(*sock.getpeername(), 'has replicated %d file(s) ' % n)

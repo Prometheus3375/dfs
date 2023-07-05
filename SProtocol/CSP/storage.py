@@ -1,4 +1,5 @@
 import os.path as ospath
+from _socket import SHUT_WR
 from math import ceil
 
 import SServer.FSFuncs as FS
@@ -56,15 +57,17 @@ def download(sock: socket, path: str):
     if not FS.Exists(path):
         SendResponse(sock, 'No such file on storage server')
         return
+    SendResponse(sock, SUCCESS)
     # Get number of chunks
     chunks = ceil(FS.GetSize(path) / FileChunkSize)
     # Get valid path
     validpath = FS.GetValidPath(path)
     # Get all bytes
-    bts = b''
+    bts = []
     for i in range(chunks):
         fpath = ospath.join(validpath, str(i))
         with open(fpath, 'rb') as f:
-            bts += f.read()
+            bts.append(f.read())
     # Send everything
-    SendBytes(sock, bts)
+    SendBytes(sock, b''.join(bts))
+    sock.shutdown(SHUT_WR)

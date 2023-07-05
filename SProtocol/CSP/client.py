@@ -1,4 +1,5 @@
 import functools
+from _socket import SHUT_WR
 
 from Common.Constants import StorageServerPort
 from Common.JobEx import SendJob
@@ -23,11 +24,16 @@ def upload(sock: socket, path: str) -> bool:
     with open(path, 'rb') as f:
         bts = f.read()
     SendBytesProgress(sock, bts)
+    sock.shutdown(SHUT_WR)
     return RecvResponse(sock) == SUCCESS
 
 
 @_cmd
 def download(sock: socket, path: str) -> bool:
+    re = RecvResponse(sock)
+    if re != SUCCESS:
+        print(re)
+        return False
     bts = RecvBytesProgress(sock)
     with open(path, 'wb') as f:
         f.write(bts)
