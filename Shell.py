@@ -3,7 +3,6 @@ import os
 import platform
 from Misc import num2order
 
-
 User = str(getpass.getuser())
 CWD = str(os.getcwd())
 if platform.system() == 'Windows':
@@ -35,9 +34,9 @@ def GetArgs(line: str) -> list:
     return args
 
 
-def shell():
+def shell(prompt_func=lambda: Prompt):
     while True:
-        line = input(Prompt)
+        line = input(prompt_func())
         args = GetArgs(line)
         if args:
             cmd = args[0]
