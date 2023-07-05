@@ -1,8 +1,9 @@
 from Shell import shell, Command, User
 from ipaddress import IPv4Address, AddressValueError
 import socket
-import VFS
+from VFS import FileSystem, VFSException
 
+FS = FileSystem()
 Server = None  # is set in main
 CallVFSOutput = None  # is set in CallVFS
 
@@ -11,18 +12,18 @@ def CallVFS(func, args):
     try:
         global CallVFSOutput
         CallVFSOutput = func(*args)
-    except VFS.VFSException as e:
+    except VFSException as e:
         print(e)
         return True
     return False
 
 
-def _cd(path: str):
-    CallVFS(VFS.cd, (path,))
+def changeCWD(path: str):
+    CallVFS(FS.cd, (path,))
 
 
-def _ls(path: str):
-    if CallVFS(VFS.ls, (path,)):
+def listDir(path: str):
+    if CallVFS(FS.ls, (path,)):
         return
     entities = CallVFSOutput
     names, types = entities
@@ -39,32 +40,32 @@ def _ls(path: str):
         print('-----------')
 
 
-def _abs(path: str):
-    if not CallVFS(VFS.absPath, (path,)):
+def absPath(path: str):
+    if not CallVFS(FS.absPath, (path,)):
         print(CallVFSOutput)
 
 
-def format():
-    VFS.format()
+def flush():
+    FS.flush()
 
 
 def create(path: str, isDir: bool):
-    if path == VFS.RootPath:
+    if path == FS.RootPath:
         print(f'Root directory already exists')
         return
-    if CallVFS(VFS.add, (path, isDir)):
+    if CallVFS(FS.add, (path, isDir)):
         return
 
 
 def remove(path: str):
     try:
-        node = VFS.nodeat(path)
+        node = FS.nodeAt(path)
         path = node.getPath()
-        if node.isRoot():
+        if node.isRoot:
             print(f'Root directory cannot be removed')
             return
         if node.isDir:
-            if node.isCWDParent():
+            if FS.isCWDAncestor(node):
                 print(f'\'%s\' cannot be removed from current working directory' % path)
                 return
             if not node.isEmpty():
@@ -73,45 +74,45 @@ def remove(path: str):
                     print('Operation aborted')
                     return
         node.delete()
-    except VFS.VFSException as e:
+    except VFSException as e:
         print(e)
         return
 
 
 def rename(what: str, to: str):
-    if CallVFS(VFS.rename, (what, to)):
+    if CallVFS(FS.rename, (what, to)):
         return
 
 
 def move(what: str, to: str):
     try:
-        node = VFS.nodeat(what)
+        node = FS.nodeAt(what)
         what = node.getPath()
-        if node.isRoot():
+        if node.isRoot:
             print(f'Root directory cannot be removed')
             return
-        if node.isDir and node.isCWDParent():
+        if node.isDir and FS.isCWDAncestor(node):
             print(f'\'%s\' cannot be removed from current working directory' % what)
             return
-        VFS.moveNode(node, to)
-    except VFS.VFSException as e:
+        FS.moveNode(node, to)
+    except VFSException as e:
         print(e)
         return
 
 
 def copy(what: str, to: str):
-    if CallVFS(VFS.copy, (what, to)):
+    if CallVFS(FS.copy, (what, to)):
         return
 
 
 Command.zero('exit', lambda: exit(0))
-Command.one('cd', str, _cd)
-Command.zero('ls', lambda: _ls('.'))
-Command.one('ls', str, _ls)
-Command.one('abs', str, _abs)
-Command.zero('walk', lambda: print(*VFS.walk(), sep='\n'))
+Command.one('cd', str, changeCWD)
+Command.zero('ls', lambda: listDir('.'))
+Command.one('ls', str, listDir)
+Command.one('abs', str, absPath)
+Command.zero('walk', lambda: print(*FS.walk(), sep='\n'))
 
-Command.zero('format', lambda: format)
+Command.zero('flush', lambda: flush)
 Command.one('mkfile', str, lambda path: create(path, False))
 Command.one('mkdir', str, lambda path: create(path, True))
 Command.one('rm', str, remove)
@@ -119,12 +120,13 @@ Command.single('re', 2, (str, str), rename)
 Command.single('mv', 2, (str, str), move)
 Command.single('cp', 2, (str, str), copy)
 
+Command.zero('update', lambda: None)
 Command.single('download', 2, (str, str), lambda virt, real: None)
 Command.single('upload', 2, (str, str), lambda real, virt: None)
 
 
 def prompt() -> str:
-    return User + ':' + VFS.cwdPath() + '$ '
+    return User + ':' + FS.CWDPath + '$ '
 
 
 def main():

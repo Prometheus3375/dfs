@@ -1,3 +1,26 @@
+Separator = '/'
+RootName = Separator
+_bad_chars = '\\', ':', '*', '?', '"', '<', '>', '|', '\t'
+BadPathChars = Separator * 2, *_bad_chars
+BadNameChars = Separator, *_bad_chars
+
+
+def raiseIfBadPath(path: str):
+    for c in BadPathChars:
+        if c in path:
+            raise VFSException(f'\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
+                               % (path, '\', \''.join(BadPathChars)))
+
+
+def raiseIfBadName(name: str):
+    if name == '.' or name == '..':
+        raise VFSException(f'\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
+    for c in BadNameChars:
+        if c in name:
+            raise VFSException(f'\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
+                               % (name, '\', \''.join(BadNameChars)))
+
+
 class VFSException(Exception):
     def __init__(self, mes: str):
         super().__init__()
@@ -8,94 +31,83 @@ class VFSException(Exception):
 
 
 class Node:
-    def __init__(self, name: str, isDir: bool, root):
+    def __init__(self, name: str, parent):
         self.name = name
-        self.isDir = isDir
-        self.isFile = not isDir
-        if root is None:
-            root = self
-        self.root = root
+        self.parent = parent
+        self.isDir = isinstance(self, Dir)
+        self.isFile = not self.isDir
+        self.isRoot = isinstance(self, Root)
 
     @staticmethod
-    def new(name: str, isDir: bool, root=None):
+    def new(name: str, parent, isDir: bool):
         if isDir:
-            return Dir(name, root)
-        return Node(name, False, root)
+            return Dir(name, parent)
+        return Node(name, parent)
 
     def getPath(self) -> str:
-        if self is Root:
-            return self.name
         path = self.name
-        node = self.root
-        while not (node is Root):
+        node = self.parent
+        while not node.isRoot:
             path = node.name + Separator + path
-            node = node.root
-        return Root.name + path
+            node = node.parent
+        return RootName + path
 
     def raiseIfFile(self):
         raise VFSException(f'\'%s\' is not a directory' % self.getPath())
 
-    def isRoot(self):
-        return self is Root
-
     def delete(self):
-        if self is Root:
-            raise VFSException('Root directory cannot be removed')
-        self.root._remove(self)
+        self.parent._remove(self)
 
     def rename(self, newname: str):
-        if self is Root:
-            raise VFSException('Root directory cannot be renamed')
-        # Remove node from root
-        self.root._remove(self)
+        # Remove node from parent
+        self.parent._remove(self)
         # Change name
         self.name = newname
-        # Add node to new root
-        self.root._add(self)
+        # Add node to new parent
+        self.parent._add(self)
 
-    def _canBeMoved(self, newroot):
-        if self is Root:
-            raise VFSException('Root directory cannot be moved')
-        # Check if new root is not a file
-        newroot.raiseIfFile()
-        # Check if new root can contain this node
-        if self.name in newroot:
-            raise VFSException(f'\'%s\' already contains \'%s\'' % (newroot.getPath(), self.name))
+    def _canBeMoved(self, newparent):
+        # Check if new parent is not a file
+        newparent.raiseIfFile()
+        # Check if new parent can contain this node
+        if self.name in newparent:
+            raise VFSException(f'\'%s\' already contains \'%s\'' % (newparent.getPath(), self.name))
 
-    def _move(self, newroot):
-        # Remove node from old root
-        self.root._remove(self)
-        # Add node to new root
-        newroot._add(self)
-        # Update root
-        self.root = newroot
+    def _move(self, newparent):
+        # Remove node from old parent
+        self.parent._remove(self)
+        # Add node to new parent
+        newparent._add(self)
+        # Update parent
+        self.parent = newparent
 
-    def move(self, newroot):
-        self._canBeMoved(newroot)
-        self._move(newroot)
+    def move(self, newparent):
+        self._canBeMoved(newparent)
+        self._move(newparent)
 
-    def _canBeCopied(self, newroot):
-        if self is Root:
-            raise VFSException('Root directory cannot be copied')
-        # Check if new root is not a file
-        newroot.raiseIfFile()
-        # Check if new root can contain this node
-        if self.name in newroot:
-            raise VFSException(f'\'%s\' already contains \'%s\'' % (newroot.getPath(), self.name))
+    def _canBeCopied(self, newparent):
+        # Check if new parent is not a file
+        newparent.raiseIfFile()
+        # Check if new parent can contain this node
+        if self.name in newparent:
+            raise VFSException(f'\'%s\' already contains \'%s\'' % (newparent.getPath(), self.name))
 
-    def _copy(self, newroot):
-        return Node.new(self.name, self.isDir, newroot)
-
-    def copy(self, newroot):
-        self._canBeCopied(newroot)
-        clone = self._copy(newroot)
-        newroot._add(clone)
+    def _copy(self, newparent):
+        # Create a clone
+        clone = Node.new(self.name, newparent, self.isDir)
+        # Add to new parent
+        newparent._add(clone)
+        # Return clone
         return clone
+
+    def copy(self, newparent):
+        self._canBeCopied(newparent)
+        return self._copy(newparent)
 
 
 class Dir(Node):
-    def __init__(self, name: str, root):
-        super().__init__(name, True, root)
+    def __init__(self, name: str, parent):
+        super().__init__(name, parent)
         self.entities = {}
 
     def raiseIfFile(self):
@@ -108,7 +120,7 @@ class Dir(Node):
         if name == '.':
             return self
         if name == '..':
-            return self.root
+            return self.parent
         return self.entities[name]
 
     def isEmpty(self) -> bool:
@@ -133,38 +145,38 @@ class Dir(Node):
     def hasInSubdirs(self, node):
         return node in self.allSubdirs()
 
-    def isCWDParent(self):
-        return self is CWD or CWD in self.allSubdirs()
-
     def _add(self, node: Node):
         self.entities[node.name] = node
 
     def _remove(self, node: Node):
         del self.entities[node.name]
 
-    def _canBeMoved(self, newroot):
-        Node._canBeMoved(self, newroot)
-        # Check if new root is not self
-        if newroot is self:
+    def _canBeMoved(self, newparent):
+        Node._canBeMoved(self, newparent)
+        # Check if new parent is not self
+        if newparent is self:
             raise VFSException(f'\'%s\' cannot be moved to itself' % self.getPath())
-        # Check if new root is not a subdirectory
-        if newroot in self.allSubdirs():
+        # Check if new parent is not a subdirectory
+        if newparent in self.allSubdirs():
             raise VFSException(
-                f'\'%s\' cannot be moved to its subdirectory \'%s\'' % (self.getPath(), newroot.getPath())
+                f'\'%s\' cannot be moved to its subdirectory \'%s\'' % (self.getPath(), newparent.getPath())
             )
 
-    def copy(self, newroot):
-        self._canBeCopied(newroot)
-        clone = self._copy(newroot)
+    def _copy(self, newparent):
+        # Create a clone
+        clone = Node.new(self.name, newparent, self.isDir)
+        # Add copies of subnodes to clone
         for node in self.entities.values():
-            node.copy(clone)
-        newroot._add(clone)
+            node._copy(clone)
+        # Add to new parent
+        newparent._add(clone)
+        # Return clone
         return clone
 
     def add(self, name: str, isDir: bool):
         if name in self:
             raise VFSException(f'\'%s\' already contains \'%s\'' % (self.getPath(), name))
-        new = Node.new(name, isDir, self)
+        new = Node.new(name, self, isDir)
         self._add(new)
         return new
 
@@ -172,207 +184,212 @@ class Dir(Node):
         return self.allSubnodes()
 
 
-def format():
-    global Root, CWD, RootPath, CWDPath
-    Root = Node.new(Separator, True)
-    CWD = Root
-    RootPath = Root.getPath()
-    CWDPath = RootPath
+class Root(Dir):
+    def __init__(self):
+        super().__init__(RootName, None)
+        self.parent = self
+
+    def getPath(self) -> str:
+        return self.name
+
+    def delete(self):
+        raise VFSException('Root directory cannot be removed')
+
+    def rename(self, newname: str):
+        raise VFSException('Root directory cannot be renamed')
+
+    def _canBeMoved(self, newparent):
+        raise VFSException('Root directory cannot be moved')
+
+    def _move(self, newparent):
+        pass
+
+    def _canBeCopied(self, newparent):
+        raise VFSException('Root directory cannot be copied')
+
+    def _copy(self, newparent):
+        return self
 
 
-def init(paths: list, types: list):
-    for path, typ in zip(paths, types):
-        add(path, typ)
+class FileSystem:
+    def __init__(self):
+        self.Root = Root()
+        self.RootPath = self.Root.getPath()
+        self.CWD = self.Root
+        self.CWDPath = self.RootPath
 
-
-Separator = '/'
-format()
-_bad_chars = '\\', ':', '*', '?', '"', '<', '>', '|', '\t'
-BadPathChars = Separator * 2, *_bad_chars
-BadNameChars = Separator, *_bad_chars
-
-
-def raiseIfBadPath(path: str):
-    for c in BadPathChars:
-        if c in path:
-            raise VFSException(f'\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
-                               % (path, '\', \''.join(BadPathChars)))
-
-
-def raiseIfBadName(name: str):
-    if name == '.' or name == '..':
-        raise VFSException(f'\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
-    for c in BadNameChars:
-        if c in name:
-            raise VFSException(f'\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
-                               % (name, '\', \''.join(BadNameChars)))
-
-
-def parsePath(path: str) -> tuple:
-    raiseIfBadPath(path)
-    if path == RootPath:
-        cwd = Root
-        path = '.'
-    elif path[0] == Separator:
-        cwd = Root
-    else:
-        cwd = CWD
-    path = path.lower().strip(Separator)
-    nodes = path.split(Separator)
-    return cwd, nodes
-
-
-def cwdPath() -> str:
-    return CWDPath
-
-
-def _nodeat(path: str) -> Node:
-    cwd, nodes = parsePath(path)
-    for name in nodes:
-        if cwd.isDir and name in cwd:
-            cwd = cwd[name]
+    def parsePath(self, path: str) -> tuple:
+        raiseIfBadPath(path)
+        if path == self.RootPath:
+            cwd = self.Root
+            path = '.'
+        elif path[0] == Separator:
+            cwd = self.Root
         else:
-            return None
-    return cwd
+            cwd = self.CWD
+        path = path.lower().strip(Separator)
+        nodes = path.split(Separator)
+        return cwd, nodes
 
+    def _nodeAt(self, path: str) -> Node:
+        cwd, nodes = self.parsePath(path)
+        for name in nodes:
+            if cwd.isDir and name in cwd:
+                cwd = cwd[name]
+            else:
+                return None
+        return cwd
 
-def nodeat(path: str) -> Node:
-    node = _nodeat(path)
-    if node:
+    def nodeAt(self, path: str) -> Node:
+        node = self._nodeAt(path)
+        if node:
+            return node
+        raise VFSException(f'\'%s\' does not exist' % path)
+
+    def dirAt(self, path: str) -> Dir:
+        node = self.nodeAt(path)
+        node.raiseIfFile()
         return node
-    raise VFSException(f'\'%s\' does not exist' % path)
 
+    def dirAtCN(self, path: str) -> Dir:
+        # CN = create if necessary
+        cwd, nodes = self.parsePath(path)
+        for name in nodes:
+            if not (name in cwd):
+                cwd.add(name, True)
+            cwd = cwd[name]
+            cwd.raiseIfFile()
+        return cwd
 
-def dirat(path: str) -> Dir:
-    node = nodeat(path)
-    node.raiseIfFile()
-    return node
+    def isAbs(self, path: str) -> bool:
+        if path == self.RootPath:
+            return True
+        cwd, nodes = self.parsePath(path)
+        if any([name == '.' or name == '..' for name in nodes]):
+            return False
+        return cwd is self.Root
 
+    def absPath(self, path: str) -> str:
+        return self.nodeAt(path).getPath()
 
-def isabs(path: str) -> bool:
-    if path == RootPath:
+    def isCWDAncestor(self, d: Dir) -> bool:
+        return d is self.CWD or self.CWD in d.allSubdirs()
+
+    def isRoot(self, path: str) -> bool:
+        return self._nodeAt(path) is self.Root
+
+    def isEmpty(self, path: str) -> bool:
+        node = self._nodeAt(path)
+        if node and node.isDir:
+            return node.isEmpty()
         return True
-    cwd, nodes = parsePath(path)
-    if any([name == '.' or name == '..' for name in nodes]):
+
+    def exists(self, path: str) -> bool:
+        node = self._nodeAt(path)
+        if node:
+            return True
         return False
-    return cwd is Root
 
+    def isFile(self, path: str) -> bool:
+        node = self._nodeAt(path)
+        if node:
+            return node.isFile
+        return False
 
-def absPath(path: str) -> str:
-    return nodeat(path).getPath()
+    def isDir(self, path: str) -> bool:
+        node = self._nodeAt(path)
+        if node:
+            return node.isDir
+        return False
 
+    def canBeAdded(self, path: str) -> bool:
+        try:
+            cwd, nodes = self.parsePath(path)
+            last = len(nodes) - 1
+            lastname = nodes[last]
+            raiseIfBadName(lastname)
+            for i in range(last):
+                name = nodes[i]
+                if not (name in cwd):
+                    # No node with such path -> can be added
+                    return True
+                cwd = cwd[name]
+                cwd.raiseIfFile()
+            return not (lastname in cwd)
+        except VFSException:
+            return False
 
-def isparent(path: str) -> bool:
-    return dirat(path).isCWDParent()
+    def add(self, path: str, isDir: bool) -> Node:
+        cwd, nodes = self.parsePath(path)
+        last = len(nodes) - 1
+        lastname = nodes[last]
+        raiseIfBadName(lastname)
+        # >>> first, last = '1/1'.split(/)
+        # >>> first is last
+        # True
+        # >>> first, last = 'some/some'.split(/)
+        # >>> first is last
+        # False
+        # It is not possible to use (a is b) check here
+        for i in range(last):
+            name = nodes[i]
+            if not (name in cwd):
+                cwd.add(name, True)
+            cwd = cwd[name]
+            cwd.raiseIfFile()
+        return cwd.add(lastname, isDir)
 
+    def canBeRemoved(self, path: str) -> bool:
+        return self.exists(path)
 
-def isroot(path: str) -> bool:
-    return _nodeat(path) is Root
+    def remove(self, path: str) -> Node:
+        node = self.nodeAt(path)
+        node.delete()
+        return node
 
+    def rename(self, what: str, name: str):
+        node = self.nodeAt(what)
+        raiseIfBadName(name)
+        node.rename(name)
 
-def isempty(path: str) -> bool:
-    node = _nodeat(path)
-    if node and node.isDir:
-        return node.isEmpty()
-    return True
+    def moveNode(self, node: Node, to: str):
+        newparent = self.dirAtCN(to)
+        node.move(newparent)
 
+    def move(self, what: str, to: str):
+        self.moveNode(self.nodeAt(what), to)
 
-def isfile(path: str) -> bool:
-    node = _nodeat(path)
-    if node:
-        return node.isFile
-    return False
+    def copy(self, what: str, to: str) -> Node:
+        node = self.nodeAt(what)
+        newparent = self.dirAtCN(to)
+        return node.copy(newparent)
 
+    def fill(self, paths_types: list):
+        for pt in paths_types:
+            path, isDir = pt
+            if self.canBeAdded(path):
+                self.add(path, isDir)
 
-def isdir(path: str) -> bool:
-    node = _nodeat(path)
-    if node:
-        return node.isDir
-    return False
+    def flush(self):
+        FileSystem.__init__(self)
 
+    def cd(self, path: str):
+        node = self.dirAt(path)
+        self.CWD = node
+        self.CWDPath = node.getPath()
 
-def exists(path: str) -> bool:
-    node = _nodeat(path)
-    if node:
-        return True
-    return False
+    def ls(self, path: str) -> tuple:
+        node = self.dirAt(path)
+        entities = node.entities.values()
+        names = []
+        types = []
+        for node in entities:
+            names.append(node.name)
+            types.append(node.isFile)
+        return names, types
 
+    def walk(self) -> list:
+        return [node.getPath() for node in self.Root.walk()]
 
-def add(path: str, isDir: bool):
-    cwd, nodes = parsePath(path)
-    last = len(nodes) - 1
-    lastname = nodes[last]
-    raiseIfBadName(lastname)
-    # >>> first, last = '1/1'.split(/)
-    # >>> first is last
-    # True
-    # >>> first, last = 'some/some'.split(/)
-    # >>> first is last
-    # False
-    # It is not possible to use (a is b) check here
-    for i in range(last):
-        name = nodes[i]
-        if not (name in cwd):
-            cwd.add(name, True)
-        cwd = cwd[name]
-        cwd.raiseIfFile()
-    cwd.add(lastname, isDir)
-
-
-def remove(path: str):
-    nodeat(path).delete()
-
-
-def rename(what: str, name: str):
-    node = nodeat(what)
-    raiseIfBadName(name)
-    node.rename(name)
-
-
-def dirat_cin(path: str) -> Dir:
-    # cin = create if necessary
-    cwd, nodes = parsePath(path)
-    for name in nodes:
-        if not (name in cwd):
-            cwd.add(name, True)
-        cwd = cwd[name]
-        cwd.raiseIfFile()
-    return cwd
-
-
-def moveNode(node: Node, to: str):
-    newroot = dirat_cin(to)
-    node.move(newroot)
-
-
-def move(what: str, to: str):
-    moveNode(nodeat(what), to)
-
-
-def copy(what: str, to: str):
-    node = nodeat(what)
-    newroot = dirat_cin(to)
-    node.copy(newroot)
-
-
-def cd(path: str):
-    node = nodeat(path)
-    node.raiseIfFile()
-    global CWD, CWDPath
-    CWD = node
-    CWDPath = CWD.getPath()
-
-
-def ls(path) -> tuple:
-    node = dirat(path)
-    entities = node.entities.values()
-    names = []
-    types = []
-    for node in entities:
-        names.append(node.name)
-        types.append(node.isFile)
-    return names, types
-
-
-def walk() -> list:
-    return [node.getPath() for node in CWD.walk()]
+    def walkWithTypes(self) -> list:
+        return [(node.getPath(), node.isDir) for node in self.Root.walk()]
