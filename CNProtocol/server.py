@@ -9,8 +9,11 @@ Result_Fail = Results('fail')
 Result_Success = Results('success')
 Result_Denied = Results('denied')
 
+Mes_UpdateLocal = ', use \'update\' command to update local replica'
+Mes_Manipulated = f'Other user is manipulating \'%s\', wait several minutes'
 
-def _reg(id: int):
+
+def _reg(id: RCType):
     def register(func):
         if id in _cmd2func:
             raise ValueError('%d is set to %s' % (id, _cmd2func[id].__name__))
@@ -21,7 +24,7 @@ def _reg(id: int):
 
 
 def ServeClient(sock: socket):
-    cmd = RecvInt(sock)
+    cmd = RecvCommand(sock)
     if cmd in _cmd2func:
         # noinspection PyStringFormat
         log = '%s:%d issued command \'%s\'' % (*sock.getpeername(), RemoteCommands[cmd])
@@ -94,7 +97,7 @@ def remove(sock: socket) -> ResultType:
         SendResponse(sock, '\'%s\' is being removed by other user' % path)
         return Result_Denied
     # Path can be deleted
-    # Remove node at pending
+    # Remove node on pending
     Pending.remove(path)
     # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and delete on them
@@ -106,38 +109,94 @@ def remove(sock: socket) -> ResultType:
     return Result_Success
 
 
+def _is_dir(sock: socket, path: str) -> bool:
+    if Actual.isDir(path):
+        SendResponse(sock, '\'%s\' is a directory on remote' % path + Mes_UpdateLocal)
+        return True
+    return False
+
+
 @_reg(Command_Rename)
 def rename(sock: socket) -> ResultType:
     path = RecvStr(sock)
     name = RecvStr(sock)
-    # Check if path exists
-    if not Actual.exists(path):
-        SendResponse(sock,
-                     '\'%s\' has been removed on remote, use \'update\' command to update local replica' % path)
-        return Result_Denied
-    if not Pending.exists(path):
-        SendResponse(sock, '\'%s\' is being removed by other user, wait several minutes' % path)
-        return Result_Denied
-    # Check if path is file
-    if Actual.isDir(path):
-        SendResponse(sock, '\'%s\' is a directory on remote, use \'update\' command to update local replica' % path)
-        return Result_Denied
+    t = (path, name)
+    Logger.addHost(*sock.getpeername(), 'attempts to rename \'%s\' to \'%s\'' % t)
     # Check if can be renamed
     if Actual.cantBeRenamed(path, name):
-        SendResponse(sock, 'Parent of \'%s\' contains \'%s\' on remote, use \'update\' command to update local replica'
-                     % (path, name))
+        SendResponse(sock, '\'%s\' cannot be renamed to \'%s\' on remote' % t + Mes_UpdateLocal)
         return Result_Denied
     if Pending.cantBeRenamed(path, name):
-        SendResponse(sock, '\'%s\' is being added by other user, wait several minutes' % path)
+        SendResponse(sock, Mes_Manipulated % path)
+        return Result_Denied
+    # Check if path is file
+    if _is_dir(sock, path):
         return Result_Denied
     # Can be renamed
-    # Rename node at pending
+    # Rename node on pending
     Pending.rename(path, name)
     # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and rename on them
     # All OK, rename on actual
-    node = Actual.rename(path, name)
+    Actual.rename(path, name)
     # Add log and response
-    Logger.addHost(*sock.getpeername(), 'has renamed \'%s\' to \'%s\'' % (path, node.getPath()))
+    Logger.addHost(*sock.getpeername(), 'has renamed \'%s\' to \'%s\'' % t)
+    SendResponse(sock, SUCCESS)
+    return Result_Success
+
+
+@_reg(Command_Move)
+def move(sock: socket) -> ResultType:
+    what = RecvStr(sock)
+    to = RecvStr(sock)
+    t = (what, to)
+    Logger.addHost(*sock.getpeername(), 'attempts to move \'%s\' to \'%s\'' % t)
+    # Check if can be moved
+    if Actual.cantBeMoved(what, to):
+        SendResponse(sock, '\'%s\' cannot be moved to \'%s\' on remote' % t + Mes_UpdateLocal)
+        return Result_Denied
+    if Pending.cantBeMoved(what, to):
+        SendResponse(sock, Mes_Manipulated % what)
+        return Result_Denied
+    # Check if file
+    if _is_dir(sock, what):
+        return Result_Denied
+    # Can be moved
+    # Move node on pending
+    Pending.move(what, to)
+    # TODO: wait until all downloads with this file will be ended
+    # TODO: gather all storage servers with path and move on them
+    # All OK, move on actual
+    Actual.move(what, to)
+    # Add log and response
+    Logger.addHost(*sock.getpeername(), 'has moved \'%s\' to \'%s\'' % t)
+    SendResponse(sock, SUCCESS)
+    return Result_Success
+
+
+@_reg(Command_Copy)
+def copy(sock: socket) -> ResultType:
+    what = RecvStr(sock)
+    to = RecvStr(sock)
+    t = (what, to)
+    Logger.addHost(*sock.getpeername(), 'attempts to copy \'%s\' to \'%s\'' % t)
+    # Check if can be copied
+    if Actual.cantBeCopied(what, to):
+        SendResponse(sock, '\'%s\' cannot be copied to \'%s\' on remote' % t + Mes_UpdateLocal)
+        return Result_Denied
+    if Pending.cantBeCopied(what, to):
+        SendResponse(sock, Mes_Manipulated % what)
+        return Result_Denied
+    # Check if file
+    if _is_dir(sock, what):
+        return Result_Denied
+    # Can be copied
+    # Copy node on pending
+    Pending.copy(what, to)
+    # TODO: gather all storage servers with path and copy on them
+    # All OK, copy on actual
+    Actual.copy(what, to)
+    # Add log and response
+    Logger.addHost(*sock.getpeername(), 'has copied \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)
     return Result_Success

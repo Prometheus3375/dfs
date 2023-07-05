@@ -11,10 +11,10 @@ Command_Remove = RemoteCommands('remove')
 Command_Rename = RemoteCommands('rename')
 Command_Move = RemoteCommands('move')
 Command_Copy = RemoteCommands('copy')
-Command_Info = RemoteCommands('info')
 Command_Flush = RemoteCommands('flush')
-Command_Download = RemoteCommands('download')
+Command_Info = RemoteCommands('info')
 Command_Upload = RemoteCommands('upload')
+Command_Download = RemoteCommands('download')
 
 Update_LineSeparator = '\n'
 

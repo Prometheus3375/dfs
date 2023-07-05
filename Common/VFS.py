@@ -49,7 +49,7 @@ class Node:
         self.parent = parent
         self.isDir = isinstance(self, Dir)
         self.isFile = not self.isDir
-        self.isRoot = isinstance(self, Root)
+        self.isRoot = isinstance(self, RootDir)
 
     @staticmethod
     def new(name: str, parent, isDir: bool):
@@ -82,7 +82,7 @@ class Node:
         # Add node to new parent
         self.parent._add(self)
 
-    def _canBeMoved(self, newparent):
+    def canBeMoved(self, newparent):
         # Check if new parent is not a file
         newparent.raiseIfFile()
         # Check if new parent can contain this node
@@ -98,10 +98,10 @@ class Node:
         self.parent = newparent
 
     def move(self, newparent):
-        self._canBeMoved(newparent)
+        self.canBeMoved(newparent)
         self._move(newparent)
 
-    def _canBeCopied(self, newparent):
+    def canBeCopied(self, newparent):
         # Check if new parent is not a file
         newparent.raiseIfFile()
         # Check if new parent can contain this node
@@ -117,7 +117,7 @@ class Node:
         return clone
 
     def copy(self, newparent):
-        self._canBeCopied(newparent)
+        self.canBeCopied(newparent)
         return self._copy(newparent)
 
 
@@ -167,8 +167,8 @@ class Dir(Node):
     def _remove(self, node: Node):
         del self.entities[node.name]
 
-    def _canBeMoved(self, newparent):
-        Node._canBeMoved(self, newparent)
+    def canBeMoved(self, newparent):
+        Node.canBeMoved(self, newparent)
         # Check if new parent is not self
         if newparent is self:
             raise VFSException('\'%s\' cannot be moved to itself' % self.getPath())
@@ -200,7 +200,7 @@ class Dir(Node):
         return self.allSubnodes()
 
 
-class Root(Dir):
+class RootDir(Dir):
     def __init__(self):
         super().__init__(RootName, None)
         self.parent = self
@@ -214,13 +214,13 @@ class Root(Dir):
     def rename(self, newname: str):
         raise VFSException('Root directory cannot be renamed')
 
-    def _canBeMoved(self, newparent):
+    def canBeMoved(self, newparent):
         raise VFSException('Root directory cannot be moved')
 
     def _move(self, newparent):
         pass
 
-    def _canBeCopied(self, newparent):
+    def canBeCopied(self, newparent):
         raise VFSException('Root directory cannot be copied')
 
     def _copy(self, newparent):
@@ -229,7 +229,7 @@ class Root(Dir):
 
 class FileSystem:
     def __init__(self):
-        self.Root = Root()
+        self.Root = RootDir()
         self.RootPath = self.Root.getPath()
         self.CWD = self.Root
         self.CWDPath = self.RootPath
@@ -295,29 +295,45 @@ class FileSystem:
         return d is self.CWD or self.CWD in d.allSubdirs()
 
     def isRoot(self, path: str) -> bool:
-        return self._nodeAt(path) is self.Root
+        try:
+            node = self._nodeAt(path)
+        except VFSException:
+            return False
+        return node is self.Root
 
     def isEmpty(self, path: str) -> bool:
-        node = self._nodeAt(path)
+        try:
+            node = self._nodeAt(path)
+        except VFSException:
+            return False
         if node and node.isDir:
             # noinspection PyUnresolvedReferences
             return node.isEmpty()
         return True
 
     def exists(self, path: str) -> bool:
-        node = self._nodeAt(path)
+        try:
+            node = self._nodeAt(path)
+        except VFSException:
+            return False
         if node:
             return True
         return False
 
     def isFile(self, path: str) -> bool:
-        node = self._nodeAt(path)
+        try:
+            node = self._nodeAt(path)
+        except VFSException:
+            return False
         if node:
             return node.isFile
         return False
 
     def isDir(self, path: str) -> bool:
-        node = self._nodeAt(path)
+        try:
+            node = self._nodeAt(path)
+        except VFSException:
+            return False
         if node:
             return node.isDir
         return False
@@ -365,10 +381,11 @@ class FileSystem:
         return cwd.add(lastname, isDir)
 
     def canBeRemoved(self, path: str) -> bool:
-        node = self._nodeAt(path)
-        if node:
+        try:
+            node = self.nodeAt(path)
             return node is not self.Root
-        return False
+        except VFSException:
+            return False
 
     def cantBeRemoved(self, path: str) -> bool:
         return not self.canBeRemoved(path)
@@ -379,14 +396,12 @@ class FileSystem:
         return node
 
     def canBeRenamed(self, what: str, name: str):
-        if IsBadName(name):
+        try:
+            RaiseIfBadName(name)
+            node = self.nodeAt(what)
+            return node is not self.Root and name.lower() not in node.parent
+        except VFSException:
             return False
-        node = self._nodeAt(what)
-        if node:
-            if node is self.Root or name.lower() in node.parent:
-                return False
-            return True
-        return False
 
     def cantBeRenamed(self, what: str, name: str):
         return not self.canBeRenamed(what, name)
@@ -396,6 +411,20 @@ class FileSystem:
         node.rename(name.lower())
         return node
 
+    def canBeMoved(self, what: str, to: str) -> bool:
+        try:
+            node = self.nodeAt(what)
+            newparent = self._nodeAt(to)
+            if newparent:
+                # noinspection PyTypeChecker
+                node.canBeMoved(newparent)
+            return True
+        except VFSException:
+            return False
+
+    def cantBeMoved(self, what: str, to: str) -> bool:
+        return not self.canBeMoved(what, to)
+
     def moveNode(self, node: Node, to: str):
         newparent = self.dirAtCN(to)
         node.move(newparent)
@@ -404,6 +433,20 @@ class FileSystem:
         node = self.nodeAt(what)
         self.moveNode(node, to)
         return node
+
+    def canBeCopied(self, what: str, to: str) -> bool:
+        try:
+            node = self.nodeAt(what)
+            newparent = self._nodeAt(to)
+            if newparent:
+                # noinspection PyTypeChecker
+                node.canBeCopied(newparent)
+            return True
+        except VFSException:
+            return False
+
+    def cantBeCopied(self, what: str, to: str) -> bool:
+        return not self.canBeCopied(what, to)
 
     def copyNode(self, node: Node, to: str) -> Node:
         newparent = self.dirAtCN(to)

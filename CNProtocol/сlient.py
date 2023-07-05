@@ -40,3 +40,42 @@ def rename(sock: socket, path: str, name: str) -> ResponseType:
     SendStr(sock, path)
     SendStr(sock, name)
     return RecvResponse(sock)
+
+
+@_cmd(Command_Move)
+def move(sock: socket, what: str, to: str) -> ResponseType:
+    SendStr(sock, what)
+    SendStr(sock, to)
+    return RecvResponse(sock)
+
+
+@_cmd(Command_Copy)
+def copy(sock: socket, what: str, to: str) -> ResponseType:
+    SendStr(sock, what)
+    SendStr(sock, to)
+    return RecvResponse(sock)
+
+
+@_cmd(Command_Flush)
+def flush(sock: socket) -> ResponseType:
+    return RecvResponse(sock)
+
+
+@_cmd(Command_Info)
+def info(sock: socket, what: str) -> ResponseType:
+    SendStr(sock, what)
+    return RecvResponse(sock)
+
+
+@_cmd(Command_Upload)
+def upload(sock: socket, real: str, virt: str) -> ResponseType:
+    SendStr(sock, virt)
+    # TODO
+    return RecvResponse(sock)
+
+
+@_cmd(Command_Flush)
+def download(sock: socket, virt: str, real: str) -> ResponseType:
+    SendStr(sock, virt)
+    # TODO
+    return RecvResponse(sock)

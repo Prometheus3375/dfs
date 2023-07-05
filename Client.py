@@ -196,10 +196,10 @@ Command.add('re', 2, (str, str), rename)
 Command.add('mv', 2, (str, str), move)
 Command.add('cp', 2, (str, str), copy)
 
-Command.one('info', str, lambda path: None)
 Command.zero('flush', flush)
-Command.add('download', 2, (str, str), lambda virt, real: None)
+Command.one('info', str, lambda path: None)
 Command.add('upload', 2, (str, str), lambda real, virt: None)
+Command.add('download', 2, (str, str), lambda virt, real: None)
 
 
 def prompt() -> str:
