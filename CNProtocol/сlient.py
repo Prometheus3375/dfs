@@ -33,3 +33,10 @@ def create(sock: socket, path: str, isDir: bool) -> ResponseType:
 def remove(sock: socket, path: str) -> ResponseType:
     SendStr(sock, path)
     return RecvResponse(sock)
+
+
+@_cmd(Command_Rename)
+def rename(sock: socket, path: str, name: str) -> ResponseType:
+    SendStr(sock, path)
+    SendStr(sock, name)
+    return RecvResponse(sock)

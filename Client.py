@@ -131,10 +131,13 @@ def rename(what: str, name: str):
         if node.isDir:
             print('\'%s\' is a directory, renaming directories is not supported yet' % what)
             return
-        FS.renameNode(node, name)
+        oldname = node.name
+        node.rename(name)
     except VFSException as e:
         print(e)
         return
+    if CallCNP(CNP.rename, what, name):
+        node.rename(oldname)
 
 
 def move(what: str, to: str):

@@ -9,20 +9,34 @@ BadNameChars = Separator, *_bad_chars
 Walk_PathTypeSep = '\t'
 
 
-def raiseIfBadPath(path: str):
+def IsBadPath(path: str) -> bool:
     for c in BadPathChars:
         if c in path:
-            raise VFSException('\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
-                               % (path, '\', \''.join(BadPathChars)))
+            return True
+    return False
 
 
-def raiseIfBadName(name: str):
+def IsBadName(name: str) -> bool:
     if name == '.' or name == '..':
-        raise VFSException('\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
+        return True
     for c in BadNameChars:
         if c in name:
-            raise VFSException('\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
-                               % (name, '\', \''.join(BadNameChars)))
+            return True
+    return False
+
+
+def RaiseIfBadPath(path: str):
+    if IsBadPath(path):
+        raise VFSException('\'%s\' is not a valid path. Path must not contain next character sequences: \'%s\''
+                           % (path, '\', \''.join(BadPathChars)))
+
+
+def RaiseIfBadName(name: str):
+    if name == '.' or name == '..':
+        raise VFSException('\'%s\' is not a valid name. Names \'.\' and \'..\' are reserved by the system' % name)
+    if IsBadName(name):
+        raise VFSException('\'%s\' is not a valid name. Name must not contain next character sequences: \'%s\''
+                           % (name, '\', \''.join(BadNameChars)))
 
 
 class VFSException(MyException):
@@ -58,6 +72,9 @@ class Node:
         self.parent._remove(self)
 
     def rename(self, newname: str):
+        RaiseIfBadName(newname)
+        if newname in self.parent:
+            raise VFSException('\'%s\' already contains \'%s\'' % (self.parent.getPath(), newname))
         # Remove node from parent
         self.parent._remove(self)
         # Change name
@@ -218,7 +235,7 @@ class FileSystem:
         self.CWDPath = self.RootPath
 
     def parsePath(self, path: str) -> tuple:
-        raiseIfBadPath(path)
+        RaiseIfBadPath(path)
         if path == self.RootPath:
             cwd = self.Root
             path = '.'
@@ -310,7 +327,7 @@ class FileSystem:
             cwd, nodes = self.parsePath(path)
             last = len(nodes) - 1
             lastname = nodes[last]
-            raiseIfBadName(lastname)
+            RaiseIfBadName(lastname)
             for i in range(last):
                 name = nodes[i]
                 if name in cwd:
@@ -330,7 +347,7 @@ class FileSystem:
         cwd, nodes = self.parsePath(path)
         last = len(nodes) - 1
         lastname = nodes[last]
-        raiseIfBadName(lastname)
+        RaiseIfBadName(lastname)
         # >>> first, last = '1/1'.split(/)
         # >>> first is last
         # True
@@ -352,19 +369,32 @@ class FileSystem:
         node.delete()
         return node
 
-    def renameNode(self, node: Node, name: str):
-        raiseIfBadName(name)
-        node.rename(name)
+    def canBeRenamed(self, what: str, name: str):
+        if IsBadName(name):
+            return False
+        node = self._nodeAt(what)
+        if node:
+            if name in node.parent:
+                return False
+            return True
+        return False
 
-    def rename(self, what: str, name: str):
-        self.renameNode(self.nodeAt(what), name)
+    def cantBeRenamed(self, what: str, name: str):
+        return not self.canBeRenamed(what, name)
+
+    def rename(self, what: str, name: str) -> Node:
+        node = self.nodeAt(what)
+        node.rename(name)
+        return node
 
     def moveNode(self, node: Node, to: str):
         newparent = self.dirAtCN(to)
         node.move(newparent)
 
-    def move(self, what: str, to: str):
-        self.moveNode(self.nodeAt(what), to)
+    def move(self, what: str, to: str) -> Node:
+        node = self.nodeAt(what)
+        self.moveNode(node, to)
+        return node
 
     def copyNode(self, node: Node, to: str) -> Node:
         newparent = self.dirAtCN(to)

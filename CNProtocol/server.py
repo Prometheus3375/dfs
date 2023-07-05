@@ -97,10 +97,48 @@ def remove(sock: socket) -> ResultType:
     # Path can be deleted
     # Remove node at pending
     Pending.remove(path)
+    # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and delete on them
     # All OK, remove on actual
     Actual.remove(path)
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has removed \'%s\'' % path)
+    SendResponse(sock, SUCCESS)
+    return Result_Success
+
+
+@_reg(Command_Rename)
+def rename(sock: socket) -> ResultType:
+    path = RecvStr(sock)
+    name = RecvStr(sock)
+    # Check if path exists
+    if not Actual.exists(path):
+        SendResponse(sock,
+                     '\'%s\' has been removed on remote, use \'update\' command to update local replica' % path)
+        return Result_Denied
+    if not Pending.exists(path):
+        SendResponse(sock, '\'%s\' is being removed by other user, wait several minutes' % path)
+        return Result_Denied
+    # Check if path is file
+    if Actual.isDir(path):
+        SendResponse(sock, '\'%s\' is a directory on remote, use \'update\' command to update local replica' % path)
+        return Result_Denied
+    # Check if can be renamed
+    if Actual.cantBeRenamed(path, name):
+        SendResponse(sock, 'Parent of \'%s\' contains \'%s\' on remote, use \'update\' command to update local replica'
+                     % (path, name))
+        return Result_Denied
+    if Pending.cantBeRenamed(path, name):
+        SendResponse(sock, '\'%s\' is being added by other user, wait several minutes' % path)
+        return Result_Denied
+    # Can be renamed
+    # Rename node at pending
+    Pending.rename(path, name)
+    # TODO: wait until all downloads with this file will be ended
+    # TODO: gather all storage servers with path and rename on them
+    # All OK, rename on actual
+    node = Actual.rename(path)
+    # Add log and response
+    Logger.addHost(*sock.getpeername(), 'has renamed \'%s\' to \'%s\'' % (path, node.getPath()))
     SendResponse(sock, SUCCESS)
     return Result_Success
