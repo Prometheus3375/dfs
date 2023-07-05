@@ -2,7 +2,7 @@ from threading import Lock, Thread
 
 import CNProtocol.server as CNP
 import NServer.Jobs as Jobs
-import NServer.Storage as Storage
+import NServer.Storages as Storages
 import SProtocol.NSP.server as NSP
 from Common.AskInput import GetNet
 from Common.Constants import NameServerClientPort, TEST
@@ -42,7 +42,7 @@ def serve(sock: socket, host: tuple):
 
 def SetLocalNet():
     net = GetNet(NetPath, 'Input network address where storages are situated')
-    Storage.SetNet(net)
+    Storages.SetNet(net)
 
 
 def incoming():
@@ -57,10 +57,10 @@ def incoming():
 def main():
     CNP.SetLogger(Logger)
     NSP.SetLogger(Logger)
-    Storage.SetLogger(Logger)
+    Storages.SetLogger(Logger)
     LoadActual()
     SetLocalNet()
-    Storage.StartFinder()
+    Storages.StartFinder()
     # Thread(daemon=True, target=incoming).start()
     incoming()
 
@@ -74,6 +74,6 @@ if __name__ == '__main__':
         Logger.addError('An error occurred', e)
     finally:
         SaveActual()
-        Storage.SaveStorageData()
+        Storages.SaveData()
         if isinstance(ClientSocket, socket):
             ClientSocket.close()

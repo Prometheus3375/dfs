@@ -1,3 +1,4 @@
+import NServer.Storages as Storages
 import SProtocol.NSP.server as NSP
 from CNProtocol.common import *
 from Common.Constants import ReplicationFactor
@@ -7,7 +8,6 @@ from Common.Socket import SocketError, SendULong
 from Common.VFS import VFSException
 from NServer import Jobs
 from NServer.FileSystems import Actual
-from NServer.Storage import GetAliveServers, GetASWithPath, GetStorage, FlushStorages
 
 # region Common
 Logger: _loggerclass = ...
@@ -96,7 +96,7 @@ def mkfile(sock: socket) -> ResultType:
         return Result_Denied
     # Add file on ReplicationFactor servers
     count = 0
-    for ip in GetAliveServers():
+    for ip in Storages.GetAliveServers():
         if CallNSP(ip, NSP.mkfile, path):
             count += 1
             if count == ReplicationFactor: break
@@ -128,10 +128,12 @@ def remove(sock: socket) -> ResultType:
         SendResponse(sock, '\'%s\' was already removed on remote' % path)
         return Result_Denied
     # Path can be deleted
-    for ip in GetASWithPath(path):
+    for ip in Storages.GetASWithPath(path):
         CallNSP(ip, NSP.remove, path)
-    # All OK, remove on actual
+    # Remove on actual
     Actual.remove(path)
+    # Remove path on all storages
+    Storages.RemovePath(path)
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has removed \'%s\'' % path)
     SendResponse(sock, SUCCESS)
@@ -160,7 +162,7 @@ def rename(sock: socket) -> ResultType:
         return Result_Denied
     # Can be renamed
     count = 0
-    for ip in GetASWithPath(path):
+    for ip in Storages.GetASWithPath(path):
         if CallNSP(ip, NSP.rename, path, name):
             count += 1
     # No server renamed - no rename on actual
@@ -190,7 +192,7 @@ def move(sock: socket) -> ResultType:
         return Result_Denied
     # Can be moved
     count = 0
-    for ip in GetASWithPath(what):
+    for ip in Storages.GetASWithPath(what):
         if CallNSP(ip, NSP.move, what, to):
             count += 1
     # No server moved - no move on actual
@@ -220,7 +222,7 @@ def copy(sock: socket) -> ResultType:
         return Result_Denied
     # Can be copied
     count = 0
-    for ip in GetASWithPath(what):
+    for ip in Storages.GetASWithPath(what):
         if CallNSP(ip, NSP.copy, what, to):
             count += 1
     # No server copied - no copy on actual
@@ -239,13 +241,13 @@ def copy(sock: socket) -> ResultType:
 def flush(sock: socket) -> ResultType:
     Logger.addHost(*sock.getpeername(), 'attempts to flush storage')
     space = 0
-    for ip in GetAliveServers():
+    for ip in Storages.GetAliveServers():
         rcvd = CallNSP(ip, NSP.flush)
         if rcvd: space += rcvd
     space //= ReplicationFactor
     # All OK, flush actual
     Actual.flush()
-    FlushStorages()
+    Storages.Flush()
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has flushed storage')
     SendULong(sock, space)
@@ -264,7 +266,7 @@ def info(sock: socket) -> ResultType:
         return Result_Denied
     # Exists
     stats = None
-    for ip in GetASWithPath(path):
+    for ip in Storages.GetASWithPath(path):
         stats = CallNSP(ip, NSP.info, path)
         if stats: break
     if stats is None:
@@ -286,7 +288,7 @@ def upload(sock: socket) -> ResultType:
     job = Jobs.new(sock)
     # Select server
     loader = ''
-    for ip in GetAliveServers():
+    for ip in Storages.GetAliveServers():
         if CallNSP(ip, NSP.upload, job, path):
             loader = ip
             break
@@ -295,7 +297,7 @@ def upload(sock: socket) -> ResultType:
         Jobs.complete(job)
         return Result_Denied
     # Response client
-    loaderfs = GetStorage(loader)
+    loaderfs = Storages.GetStorage(loader)
     SendResponse(sock, SUCCESS)
     SendJob(sock, job)
     SendStr(sock, loaderfs.pubip)
@@ -335,7 +337,7 @@ def download(sock: socket) -> ResultType:
     job = Jobs.new(sock)
     # Select server
     loader = ''
-    for ip in GetASWithPath(path):
+    for ip in Storages.GetASWithPath(path):
         if CallNSP(ip, NSP.download, job, path):
             loader = ip
             break
@@ -347,7 +349,7 @@ def download(sock: socket) -> ResultType:
     # Response client
     SendResponse(sock, SUCCESS)
     SendJob(sock, job)
-    SendStr(sock, GetStorage(loader).pubip)
+    SendStr(sock, Storages.GetStorage(loader).pubip)
     # Get answer from client
     re = RecvResponse(sock)
     # Complete job

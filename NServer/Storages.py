@@ -10,7 +10,7 @@ from Common.Misc import Enum
 from Common.Socket import SocketError
 from Common.VFS import LockFS
 
-FinderPeriod = 60  # in seconds
+FinderPeriod = 30  # in seconds
 FinderNet: IPv4Network = ...
 Logger: _loggerclass = ...
 
@@ -133,9 +133,16 @@ def StartFinder():
 
 
 @_lock
-def FlushStorages():
+def Flush():
     for store in _storages.values():
         store.flush()
+
+
+@_lock
+def RemovePath(path: str):
+    for store in _storages.values():
+        if path in store:
+            store.remove(path)
 
 
 @_lock
@@ -171,6 +178,6 @@ def GetStorage(ip: str) -> Storage:
 
 
 @_lock
-def SaveStorageData():
+def SaveData():
     for stor in _storages.values():
         stor.saveFS()
