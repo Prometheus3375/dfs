@@ -137,7 +137,7 @@ def rename(sock: socket) -> ResultType:
     # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and rename on them
     # All OK, rename on actual
-    node = Actual.rename(path)
+    node = Actual.rename(path, name)
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has renamed \'%s\' to \'%s\'' % (path, node.getPath()))
     SendResponse(sock, SUCCESS)

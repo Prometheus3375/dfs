@@ -77,7 +77,7 @@ def CallCNP(func, *args) -> bool:
         if re: print(re)
         return False
     except (CNP.CNPException, SocketError) as e:
-        print(e)
+        print('Error:', e)
         return True
 
 

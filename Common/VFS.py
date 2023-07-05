@@ -374,7 +374,7 @@ class FileSystem:
             return False
         node = self._nodeAt(what)
         if node:
-            if name in node.parent:
+            if name.lower() in node.parent:
                 return False
             return True
         return False
@@ -384,7 +384,7 @@ class FileSystem:
 
     def rename(self, what: str, name: str) -> Node:
         node = self.nodeAt(what)
-        node.rename(name)
+        node.rename(name.lower())
         return node
 
     def moveNode(self, node: Node, to: str):
