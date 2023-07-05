@@ -145,3 +145,15 @@ def upload(sock: socket) -> bool:
         Jobs.CompleteJob(job)
         return True
     return False
+
+
+@_reg(Cmd_Download)
+def download(sock: socket) -> bool:
+    job = RecvJob(sock)
+    path = RecvStr(sock)
+    j = Jobs.AddDownloadJob(job, path)
+    SendResponse(sock, SUCCESS)
+    if not j.wait(LoadTimeout):
+        Jobs.CompleteJob(job)
+        return True
+    return False

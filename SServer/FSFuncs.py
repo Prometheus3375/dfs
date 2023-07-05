@@ -55,6 +55,17 @@ def _convert_path(path: str) -> str:
 
 
 @_lock
+def GetValidPath(path: str) -> str:
+    return _convert_path(path)
+
+
+@_lock
+def Exists(path: str) -> bool:
+    path = _convert_path(path)
+    return ospath.isdir(path)
+
+
+@_lock
 def Create(path: str) -> str:
     path = _convert_path(path)
     names = GetNameList(path)
@@ -119,7 +130,7 @@ def GetFreeSpace() -> int:
     return free
 
 
-def _get_dir_size(path: str):
+def _get_dir_size(path: str) -> int:
     space = 0
     for entry in os.scandir(path):
         if entry.is_dir(follow_symlinks=False):
@@ -129,7 +140,8 @@ def _get_dir_size(path: str):
     return space
 
 
-def GetSize(path: str):
+@_lock
+def GetSize(path: str) -> int:
     path = _convert_path(path)
     return _get_dir_size(path)
 

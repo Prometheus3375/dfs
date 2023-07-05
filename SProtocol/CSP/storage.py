@@ -1,10 +1,11 @@
 import os.path as ospath
+from math import ceil
 
 import SServer.FSFuncs as FS
 import SServer.Jobs as Jobs
 from Common import Logger as _loggerclass
 from Common.JobEx import RecvJob
-from Common.Socket import RecvULong, RecvBytes
+from Common.Socket import RecvULong, RecvBytes, SendULong, SendBytes
 from SProtocol.CSP.common import *
 
 Logger = ...
@@ -30,16 +31,29 @@ def ServeClient(sock: socket):
 
 
 def upload(sock: socket, path: str):
-    Logger.addHost(*sock.getpeername(), 'attempts to upload a file to %s' % path)
+    Logger.addHost(*sock.getpeername(), 'attempts to upload a file to \'%s\'' % path)
     validpath = FS.CreateFile(path)
     chunks = RecvULong(sock)
     for i in range(chunks):
         fpath = ospath.join(validpath, str(i))
         with open(fpath, 'wb') as f:
             f.write(RecvBytes(sock))
-    Logger.addHost(*sock.getpeername(), 'has uploaded file %s' % path)
+    Logger.addHost(*sock.getpeername(), 'has uploaded file \'%s\'' % path)
     SendResponse(sock, SUCCESS)
 
 
 def download(sock: socket, path: str):
-    pass
+    Logger.addHost(*sock.getpeername(), 'attempts to download \'%s\'' % path)
+    # Check if exists
+    if not FS.Exists(path):
+        SendResponse(sock, 'No such file on storage server')
+        return
+    # Get chunks number and valid path
+    chunks = ceil(FS.GetSize(path) / FileChunkSize)
+    validpath = FS.GetValidPath(path)
+    # Send file
+    SendULong(sock, chunks)
+    for i in range(chunks):
+        fpath = ospath.join(validpath, str(i))
+        with open(fpath, 'rb') as f:
+            SendBytes(sock, f.read())

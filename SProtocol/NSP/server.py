@@ -142,6 +142,13 @@ def upload(sock: socket, log: str, job: int, path: str) -> bool:
     return LogResponse(sock, log)
 
 
+@_cmd(Cmd_Download)
+def download(sock: socket, log: str, job: int, path: str) -> bool:
+    SendJob(sock, job)
+    SendStr(sock, path)
+    return LogResponse(sock, log)
+
+
 @_cmd(Cmd_Replicate)
 def replicate(sock: socket, log: str, job: int, path: str) -> bool:
     SendJob(sock, job)

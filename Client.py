@@ -243,7 +243,20 @@ def upload(real: str, virt: str):
 
 
 def download(virt: str, real: str):
-    pass
+    # Check virt
+    if virt not in FS:
+        print(f'\'{virt}\' does not exist')
+        return
+    if not FS.isFile(virt):
+        print(f'\'{real}\' must be a file')
+        return
+    virt = FS.nodeAt(virt).getPath()
+    # Check real
+    if ospath.exists(real):
+        print(f'\'{real}\' already exists')
+        return
+    # All OK, call remote
+    CallCNP(CNP.download, virt, real)
 
 
 # endregion

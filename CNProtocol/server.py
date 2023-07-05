@@ -315,3 +315,44 @@ def upload(sock: socket) -> ResultType:
     Logger.addHost(*sock.getpeername(), 'has added \'%s\'' % path)
     # TODO: replication
     return Result_Success
+
+
+@_reg(Command_Download)
+def download(sock: socket) -> ResultType:
+    path = RecvStr(sock)
+    Logger.addHost(*sock.getpeername(), 'attempts to download \'%s\'' % path)
+    # Check if exists
+    if path not in Actual:
+        SendResponse(sock, '\'%s\' does not exist on remote' % path + Mes_UpdateLocal)
+        return Result_Denied
+    # Check if file
+    if _is_dir(sock, path):
+        return Result_Denied
+    # Can be downloaded
+    # Create Job
+    job = Jobs.new(sock)
+    # Select server
+    loader = ''
+    for ip in GetASWithPath(path):
+        if CallNSP(ip, NSP.download, job, path):
+            loader = ip
+            break
+    # No server has file - cannot be downloaded
+    if not loader:
+        SendResponse(sock, '\'%s\' cannot be downloaded' % path + Mes_UpdateLocal)
+        Jobs.complete(job)
+        return Result_Denied
+    # Response client
+    SendResponse(sock, SUCCESS)
+    SendJob(sock, job)
+    SendStr(sock, GetStorage(loader).pubip)
+    # Get answer from client
+    re = RecvResponse(sock)
+    # Complete job
+    Jobs.complete(job)
+    # Check answer
+    if re != SUCCESS:
+        return Result_Fail
+    # Log
+    Logger.addHost(*sock.getpeername(), 'has downloaded \'%s\'' % path)
+    return Result_Success

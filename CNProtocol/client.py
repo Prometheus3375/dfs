@@ -79,12 +79,15 @@ def upload(sock: socket, real: str, virt: str) -> ResponseType:
     re = RecvResponse(sock)
     if re != SUCCESS:
         return re
+    # Remote accepted request
     job = RecvJob(sock)
     pubip = RecvStr(sock)
+    # Connect to storage
     # noinspection PyTypeChecker
     if CSP.upload(pubip, job, real):
         SendResponse(sock, SUCCESS)
         return SUCCESS
+    # Response to server
     SendResponse(sock, UploadFail % real)
     return UploadFail % real
 
@@ -92,5 +95,17 @@ def upload(sock: socket, real: str, virt: str) -> ResponseType:
 @_cmd(Command_Download)
 def download(sock: socket, virt: str, real: str) -> ResponseType:
     SendStr(sock, virt)
-    # TODO
-    return RecvResponse(sock)
+    re = RecvResponse(sock)
+    if re != SUCCESS:
+        return re
+    # Remote accepted request
+    job = RecvJob(sock)
+    pubip = RecvStr(sock)
+    # Connect to storage
+    # noinspection PyTypeChecker
+    if CSP.download(pubip, job, real):
+        SendResponse(sock, SUCCESS)
+        return SUCCESS
+    # Response to server
+    SendResponse(sock, DownloadFail % real)
+    return DownloadFail % real

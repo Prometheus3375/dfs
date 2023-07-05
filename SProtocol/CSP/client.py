@@ -22,7 +22,7 @@ def _cmd(func):
 
 def print_progress(percent: float):
     percent = floor(percent * 100.)
-    out = '\rProgress - %3d%% [' % percent + '#' * percent + '.' * (100 - percent) + ']'
+    out = '\rProgress - %d%% [' % percent + '#' * percent + '.' * (100 - percent) + ']'
     print(out, end='')
 
 
@@ -45,8 +45,12 @@ def upload(sock: socket, path: str) -> bool:
 
 
 @_cmd
-def download(sock: socket, path: str):
+def download(sock: socket, path: str) -> bool:
     chunks = RecvULong(sock)
+    print_progress(0)
     with open(path, 'wb') as f:
         for i in range(chunks):
             f.write(RecvBytes(sock))
+            print_progress((i + 1) / chunks)
+    print()  # new line
+    return True
