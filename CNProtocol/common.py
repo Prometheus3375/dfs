@@ -1,17 +1,18 @@
-from Common.Misc import Enum, MyException
+from Common.Misc import EnumCode, MyException
 
-RemoteCommands = Enum(0)
+RemoteCommands = EnumCode()
 
-Command_Update = RemoteCommands()
-Command_Flush = RemoteCommands()
-Command_MKFile = RemoteCommands()
-Command_MKDir = RemoteCommands()
-Command_Remove = RemoteCommands()
-Command_Rename = RemoteCommands()
-Command_Move = RemoteCommands()
-Command_Copy = RemoteCommands()
-Command_Download = RemoteCommands()
-Command_Upload = RemoteCommands()
+Command_Update = RemoteCommands('update')
+Command_Flush = RemoteCommands('flush')
+Command_MKFile = RemoteCommands('make file')
+Command_MKDir = RemoteCommands('make dir')
+Command_Remove = RemoteCommands('remove')
+Command_Rename = RemoteCommands('rename')
+Command_Move = RemoteCommands('move')
+Command_Copy = RemoteCommands('copy')
+Command_Info = RemoteCommands('info')
+Command_Download = RemoteCommands('download')
+Command_Upload = RemoteCommands('upload')
 
 
 class CNPException(MyException):

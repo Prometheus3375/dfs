@@ -1,4 +1,5 @@
 from Common.Socket import *
+from NServer import Logger
 from NServer.FSDriver import WalkActual
 from .common import *
 
@@ -17,7 +18,16 @@ def _reg(id: int):
 def RecvCommand(sock: socket):
     cmd = RecvInt(sock)
     if cmd in RemoteCommands:
-        Command2Func[cmd](sock)
+        # noinspection PyStringFormat
+        log = '%s:%d issued command \'%s\'' % (*sock.getpeername(), RemoteCommands[cmd])
+        Logger.add(log)
+        fail = True
+        try:
+            Command2Func[cmd](sock)
+            fail = False
+            Logger.add(log + ' - success')
+        finally:
+            if fail: Logger.add(log + ' - fail')
     else:
         raise CNPException('Invalid command passed from client %s:%d' % sock.getpeername())
 

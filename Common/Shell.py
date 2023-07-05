@@ -104,7 +104,7 @@ class Command:
     def run(self, args: list):
         # Check the number of arguments
         l = len(args)
-        if not (l in self.args_n):
+        if l not in self.args_n:
             print(self.ian)
             return
         # Check the type of arguments

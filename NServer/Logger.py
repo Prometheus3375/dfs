@@ -1,8 +1,9 @@
 from datetime import datetime
 
 LogFile = 'log.txt'
-# with open(LogFile, 'w', encoding='utf-8'):
-#     pass
+
+
+# open(LogFile, 'w', encoding='utf-8')
 
 
 def add(info: str):

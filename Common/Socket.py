@@ -38,7 +38,7 @@ def _sendall(sock: socket, bts: bytes):
         result = sock.sendall(bts)
     except _error as e:
         raise SocketError(Error_Other, str(e))
-    if not (result is None):
+    if result is not None:
         raise SocketError(Error_SocketClosed)
 
 

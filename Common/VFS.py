@@ -171,7 +171,7 @@ class Dir(Node):
         # Return clone
         return clone
 
-    def add(self, name: str, isDir: bool):
+    def add(self, name: str, isDir: bool) -> Node:
         if name in self:
             raise VFSException(f'\'%s\' already contains \'%s\'' % (self.getPath(), name))
         new = Node.new(name, self, isDir)
@@ -253,10 +253,11 @@ class FileSystem:
         # CN = create if necessary
         cwd, nodes = self.parsePath(path)
         for name in nodes:
-            if not (name in cwd):
-                cwd.add(name, True)
-            cwd = cwd[name]
-            cwd.raiseIfFile()
+            if name in cwd:
+                cwd = cwd[name]
+                cwd.raiseIfFile()
+            else:
+                cwd = cwd.add(name, True)
         return cwd
 
     def isAbs(self, path: str) -> bool:
@@ -308,12 +309,13 @@ class FileSystem:
             raiseIfBadName(lastname)
             for i in range(last):
                 name = nodes[i]
-                if not (name in cwd):
+                if name in cwd:
+                    cwd = cwd[name]
+                    cwd.raiseIfFile()
+                else:
                     # No node with such path -> can be added
                     return True
-                cwd = cwd[name]
-                cwd.raiseIfFile()
-            return not (lastname in cwd)
+            return lastname not in cwd
         except VFSException:
             return False
 
@@ -331,10 +333,11 @@ class FileSystem:
         # It is not possible to use (a is b) check here
         for i in range(last):
             name = nodes[i]
-            if not (name in cwd):
-                cwd.add(name, True)
-            cwd = cwd[name]
-            cwd.raiseIfFile()
+            if name in cwd:
+                cwd = cwd[name]
+                cwd.raiseIfFile()
+            else:
+                cwd = cwd.add(name, True)
         return cwd.add(lastname, isDir)
 
     def canBeRemoved(self, path: str) -> bool:
