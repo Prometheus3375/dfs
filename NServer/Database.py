@@ -1,4 +1,4 @@
-from Misc import num2order
+from Common.Misc import num2order
 
 
 class Table:

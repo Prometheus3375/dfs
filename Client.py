@@ -1,11 +1,11 @@
-from Shell import shell, Command, User
+from Common.Shell import shell, Command, User
 from ipaddress import IPv4Address, AddressValueError
 import socket
-from VFS import FileSystem, VFSException
+from Common.VFS import FileSystem, VFSException
 
 FS = FileSystem()
-Server = None  # is set in main
-CallVFSOutput = None  # is set in CallVFS
+Server = ...  # is set in main
+CallVFSOutput = ...  # is set in CallVFS
 
 
 def CallVFS(func, args):

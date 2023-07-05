@@ -1,7 +1,7 @@
 import getpass
 import os
 import platform
-from Misc import num2order
+from Common.Misc import num2order
 
 User = str(getpass.getuser())
 CWD = str(os.getcwd())
