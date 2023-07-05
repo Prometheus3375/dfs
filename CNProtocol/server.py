@@ -87,11 +87,10 @@ def remove(sock: socket) -> ResultType:
     path = RecvStr(sock)
     Logger.addHost(*sock.getpeername(), 'attempts to remove \'%s\'' % path)
     # Check if path can be deleted
-    if not Actual.exists(path):
-        SendResponse(sock,
-                     '\'%s\' was already removed on remote' % path)
+    if Actual.cantBeRemoved(path):
+        SendResponse(sock, '\'%s\' was already removed on remote' % path)
         return Result_Denied
-    if not Pending.exists(path):
+    if Pending.cantBeRemoved(path):
         SendResponse(sock, '\'%s\' is being removed by other user' % path)
         return Result_Denied
     # Path can be deleted

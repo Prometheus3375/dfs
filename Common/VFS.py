@@ -364,6 +364,15 @@ class FileSystem:
                 cwd = cwd.add(name, True)
         return cwd.add(lastname, isDir)
 
+    def canBeRemoved(self, path: str) -> bool:
+        node = self._nodeAt(path)
+        if node:
+            return node is not self.Root
+        return False
+
+    def cantBeRemoved(self, path: str) -> bool:
+        return not self.canBeRemoved(path)
+
     def remove(self, path: str) -> Node:
         node = self.nodeAt(path)
         node.delete()
@@ -374,7 +383,7 @@ class FileSystem:
             return False
         node = self._nodeAt(what)
         if node:
-            if name.lower() in node.parent:
+            if node is self.Root or name.lower() in node.parent:
                 return False
             return True
         return False
