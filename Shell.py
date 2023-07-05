@@ -39,7 +39,7 @@ def shell(prompt_func=lambda: Prompt):
         line = input(prompt_func())
         args = GetArgs(line)
         if args:
-            cmd = args[0]
+            cmd = args[0].lower()
             if cmd in Commands:
                 Commands[cmd].run(args[1:])
             else:
@@ -79,8 +79,8 @@ class Command:
         # Add command to dict
         Commands[name] = self
 
-    @classmethod
-    def single(cls, name: str, args_n: int, arg_types: tuple, func):
+    @staticmethod
+    def single(name: str, args_n: int, arg_types: tuple, func):
         if name in Commands:
             cmd = Commands[name]
             if args_n in cmd.args_n:
@@ -89,16 +89,16 @@ class Command:
                 args_n = (*cmd.args_n, args_n)
                 arg_types = (*[cmd.arg_types[i] for i in cmd.args_n], arg_types)
                 funcs = (*[cmd.funcs[i] for i in cmd.args_n], func)
-                return cls(name, args_n, arg_types, funcs)
-        return cls(name, (args_n,), (arg_types,), (func,))
+                return Command(name, args_n, arg_types, funcs)
+        return Command(name, (args_n,), (arg_types,), (func,))
 
-    @classmethod
-    def zero(cls, name: str, func):
-        return cls.single(name, 0, (), func)
+    @staticmethod
+    def zero(name: str, func):
+        return Command.single(name, 0, (), func)
 
-    @classmethod
-    def one(cls, name: str, argtype, func):
-        return cls.single(name, 1, (argtype,), func)
+    @staticmethod
+    def one(name: str, argtype, func):
+        return Command.single(name, 1, (argtype,), func)
 
     def run(self, args: list):
         # Check the number of arguments
