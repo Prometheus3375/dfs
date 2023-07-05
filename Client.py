@@ -49,13 +49,10 @@ def format(args: list):
 
 
 def create(path: str, isDir: bool):
-    try:
-        if VFS.isroot(path):
-            print(f'Root directory already exists')
-            return
-        VFS.add(path, isDir)
-    except VFS.VFSException as e:
-        print(e)
+    if path == VFS.RootPath:
+        print(f'Root directory already exists')
+        return
+    if CallVFS(VFS.add, (path, isDir)):
         return
 
 
