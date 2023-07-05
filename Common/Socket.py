@@ -3,19 +3,17 @@ from math import ceil
 from socket import socket, AF_INET, SOCK_STREAM, error as _error
 from struct import *
 
-from .Misc import Enum, MyException
+from .Misc import EnumCode, MyError
 
-Errors = Enum()
-Error_Other = Errors.new()
-Error_Connect = Errors.new()
-Error_Send = Errors.new()
-Error_Recv = Errors.new()
+Errors = EnumCode()
+Error_ConnectFailed = Errors('Connection to the remote host has failed')
+Error_SocketClosed = Errors('The remote host has closed the connection')
+Error_Other = Errors.top + 1
 
 
-class SocketError(MyException):
-    def __init__(self, mes: str = '', code: int = Error_Other):
-        super(SocketError, self).__init__(mes)
-        self.err = code
+class SocketError(MyError):
+    def __init__(self, err_code: int, msg: str = ''):
+        super().__init__(Errors, err_code, msg)
 
 
 ChunkSize = 1024  # in bytes
@@ -28,7 +26,7 @@ def connect(func):
             try:
                 sock.connect(host)
             except _error:
-                raise SocketError('Failed to connect to %s:%d' % host, Error_Connect)
+                raise SocketError(Error_ConnectFailed)
             wrapper.sock = sock
             return func(sock, *args)
 
@@ -36,8 +34,12 @@ def connect(func):
 
 
 def _sendall(sock: socket, bts: bytes):
-    if not (sock.sendall(bts) is None):
-        raise SocketError('Send to %s:%d failed' % sock.getpeername(), Error_Send)
+    try:
+        result = sock.sendall(bts)
+    except _error as e:
+        raise SocketError(Error_Other, str(e))
+    if not (result is None):
+        raise SocketError(Error_SocketClosed)
 
 
 def SendInt(sock: socket, i: int):
@@ -48,23 +50,9 @@ def _sendChunk(sock: socket, chunk: bytes):
     _sendall(sock, chunk)
 
 
-def SendChunk(sock: socket, chunk: bytes):
-    if len(chunk) == ChunkSize:
-        _sendChunk(sock, chunk)
-    raise SocketError('Size of passed chunk must equal %d, '
-                      'for bigger sizes use SendBytes, for smaller use SendSizedChunk' % ChunkSize)
-
-
 def _sendSizedChunk(sock: socket, chunk: bytes):
     SendInt(sock, len(chunk))
     _sendChunk(sock, chunk)
-
-
-def SendSizedChunk(sock: socket, chunk: bytes):
-    if len(chunk) <= ChunkSize:
-        _sendSizedChunk(sock, chunk)
-    raise SocketError('Size of passed chunk must be not bigger than %d, '
-                      'for bigger sizes use SendBytes' % ChunkSize)
 
 
 def SendBytes(sock: socket, bts: bytes):
@@ -86,10 +74,13 @@ def SendStr(sock: socket, s: str):
 
 
 def _recv(sock: socket, bufsize: int) -> bytes:
-    result = sock.recv(bufsize)
-    if not result:
-        raise SocketError('No bytes received from %s:%d' % sock.getpeername(), Error_Recv)
-    return result
+    try:
+        result = sock.recv(bufsize)
+    except _error as e:
+        raise SocketError(Error_Other, str(e))
+    if result:
+        return result
+    raise SocketError(Error_SocketClosed)
 
 
 def RecvInt(sock: socket) -> int:

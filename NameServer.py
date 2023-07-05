@@ -20,7 +20,7 @@ class Listener(Thread):
             RecvCommand(sock)
         except SocketError as e:
             Logger.add('A socket error occurred during serving %s: ' % self.host + str(e))
-        except CNPError as e:
+        except CNPException as e:
             Logger.add('A protocol error occurred during serving %s: ' % self.host + str(e))
         except Exception as e:
             Logger.add('A unknown error occurred during serving %s: ' % self.host + str(e))

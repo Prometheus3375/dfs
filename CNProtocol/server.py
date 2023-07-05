@@ -16,10 +16,10 @@ def _reg(id: int):
 
 def RecvCommand(sock: socket):
     cmd = RecvInt(sock)
-    if RemoteCommands.valid(cmd):
+    if cmd in RemoteCommands:
         Command2Func[cmd](sock)
     else:
-        raise CNPError('Invalid command passed from client %s:%d' % sock.getpeername())
+        raise CNPException('Invalid command passed from client %s:%d' % sock.getpeername())
 
 
 @_reg(Command_Update)

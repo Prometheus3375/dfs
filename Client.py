@@ -57,11 +57,11 @@ def update():
         paths_types = CNP.update(Server)
         FS.fillFromLines(paths_types)
     except SocketError as e:
-        if e.err == Error_Other:
-            print('Unknown error occurred: ' + str(e))
+        if e.code == Error_Other:
+            print('Unknown error occurred:', e)
         else:
-            print('Failed to connect to server')
-    except CNP.CNPError as e:
+            print(e)
+    except CNP.CNPException as e:
         print(e)
 
 

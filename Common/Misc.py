@@ -14,23 +14,47 @@ class Enum:
         self.start = start
         self.top = start
 
-    def new(self) -> int:
+    def __call__(self) -> int:
         self.top += 1
         return self.top
 
-    def valid(self, i: int) -> bool:
+    def __contains__(self, i: int) -> bool:
         return self.start < i <= self.top
 
 
-class MyException(Exception):
-    def __init__(self, mes: str = ''):
-        if mes:
-            super(MyException, self).__init__(mes)
-        else:
-            super(MyException, self).__init__()
-        self.message = mes
+class EnumCode:
+    def __init__(self):
+        self.codes = []
+        self.top = -1
 
-    def __str__(self):
-        if self.message:
-            return self.message
-        return super(MyException, self).__str__()
+    def __call__(self, message: str) -> int:
+        self.top += 1
+        self.codes.append(message)
+        return self.top
+
+    def __contains__(self, i: int) -> bool:
+        return -1 - self.top <= i <= self.top
+
+    def __getitem__(self, i: int) -> str:
+        return self.codes[i]
+
+
+class MyException(Exception):
+    def __init__(self, msg: str = ''):
+        if msg:
+            super().__init__(msg)
+            self.message = msg
+        else:
+            super().__init__()
+            self.message = super().__str__()
+
+    def __str__(self) -> str:
+        return self.message
+
+
+class MyError(MyException):
+    def __init__(self, errors: EnumCode, err_code: int, msg: str = ''):
+        super().__init__(msg)
+        self.code = err_code
+        if not msg and err_code in errors:
+            self.message = errors[err_code]
