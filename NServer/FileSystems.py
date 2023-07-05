@@ -1,9 +1,10 @@
+import os
+
 from Common.Constants import TEST
 from Common.VFS import LockFS
 
 Actual = LockFS()
 Actual_BackUp = 'ActualFS.txt'
-Pending = LockFS()
 
 
 def SaveActual():
@@ -13,9 +14,10 @@ def SaveActual():
 
 
 def LoadActual(skip_malformed: bool = True):
-    with open(Actual_BackUp, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    Actual.fillFromLines(lines, skip_malformed)
+    if os.path.exists(Actual_BackUp):
+        with open(Actual_BackUp, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        Actual.fillFromLines(lines, skip_malformed)
 
 
 if __name__ == '__main__':
@@ -35,4 +37,3 @@ elif TEST:
     Actual.add('some/cool/path/file.txt', False)
     Actual.add('some/cool/kekw.txt', False)
     Actual.copy('some/cool', '/')
-    Pending.fillFromLines(Actual.walkWithTypes())

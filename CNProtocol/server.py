@@ -1,5 +1,5 @@
 from CNProtocol.common import *
-from NServer.FileSystems import Actual, Pending
+from NServer.FileSystems import Actual
 from NameServer import Logger
 
 _cmd2func = {}
@@ -10,7 +10,6 @@ Result_Success = Results('success')
 Result_Denied = Results('denied')
 
 Mes_UpdateLocal = ', use \'update\' command to update local replica'
-Mes_Manipulated = f'Other user is manipulating \'%s\', wait several minutes'
 
 
 def _reg(id: RCType):
@@ -50,9 +49,6 @@ def _cant_add_node(sock: socket, path: str) -> bool:
     if Actual.cantBeAdded(path):
         SendResponse(sock, '\'%s\' already exists on remote' % path)
         return True
-    if Pending.cantBeAdded(path):
-        SendResponse(sock, '\'%s\' is being added by other user' % path)
-        return True
     return False
 
 
@@ -67,7 +63,6 @@ def mkfile(sock: socket) -> ResultType:
     path = RecvStr(sock)
     if _cant_add_node(sock, path):
         return Result_Denied
-    node = Pending.add(path, False)
     # TODO: create job
     # TODO: select 2 storage servers and create a file on them
     # TODO: if NSP error occur, select another server
@@ -76,11 +71,10 @@ def mkfile(sock: socket) -> ResultType:
 
 
 @_reg(Command_MKDir)
-def mkfile(sock: socket) -> ResultType:
+def mkdir(sock: socket) -> ResultType:
     path = RecvStr(sock)
     if _cant_add_node(sock, path):
         return Result_Denied
-    Pending.add(path, True)
     Actual.add(path, True)
     return _node_added(sock, path)
 
@@ -93,13 +87,7 @@ def remove(sock: socket) -> ResultType:
     if Actual.cantBeRemoved(path):
         SendResponse(sock, '\'%s\' was already removed on remote' % path)
         return Result_Denied
-    if Pending.cantBeRemoved(path):
-        SendResponse(sock, '\'%s\' is being removed by other user' % path)
-        return Result_Denied
     # Path can be deleted
-    # Remove node on pending
-    Pending.remove(path)
-    # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and delete on them
     # All OK, remove on actual
     Actual.remove(path)
@@ -126,16 +114,10 @@ def rename(sock: socket) -> ResultType:
     if Actual.cantBeRenamed(path, name):
         SendResponse(sock, '\'%s\' cannot be renamed to \'%s\' on remote' % t + Mes_UpdateLocal)
         return Result_Denied
-    if Pending.cantBeRenamed(path, name):
-        SendResponse(sock, Mes_Manipulated % path)
-        return Result_Denied
     # Check if path is file
     if _is_dir(sock, path):
         return Result_Denied
     # Can be renamed
-    # Rename node on pending
-    Pending.rename(path, name)
-    # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and rename on them
     # All OK, rename on actual
     Actual.rename(path, name)
@@ -155,16 +137,10 @@ def move(sock: socket) -> ResultType:
     if Actual.cantBeMoved(what, to):
         SendResponse(sock, '\'%s\' cannot be moved to \'%s\' on remote' % t + Mes_UpdateLocal)
         return Result_Denied
-    if Pending.cantBeMoved(what, to):
-        SendResponse(sock, Mes_Manipulated % what)
-        return Result_Denied
     # Check if file
     if _is_dir(sock, what):
         return Result_Denied
     # Can be moved
-    # Move node on pending
-    Pending.move(what, to)
-    # TODO: wait until all downloads with this file will be ended
     # TODO: gather all storage servers with path and move on them
     # All OK, move on actual
     Actual.move(what, to)
@@ -184,15 +160,10 @@ def copy(sock: socket) -> ResultType:
     if Actual.cantBeCopied(what, to):
         SendResponse(sock, '\'%s\' cannot be copied to \'%s\' on remote' % t + Mes_UpdateLocal)
         return Result_Denied
-    if Pending.cantBeCopied(what, to):
-        SendResponse(sock, Mes_Manipulated % what)
-        return Result_Denied
     # Check if file
     if _is_dir(sock, what):
         return Result_Denied
     # Can be copied
-    # Copy node on pending
-    Pending.copy(what, to)
     # TODO: gather all storage servers with path and copy on them
     # All OK, copy on actual
     Actual.copy(what, to)
