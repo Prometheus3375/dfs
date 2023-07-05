@@ -80,9 +80,12 @@ def FindStorages():
     for addr in FinderNet.hosts():
         try:
             ip = str(addr)
+            # IPv4Network(x.y.z.0/m).hosts() with m == 31 returns x.y.z.0 and x.y.z.1 instead of only x.y.z.1
+            # Do not check x.y.z.0
+            if ip[-1] == '0': continue
             pubip = NSP.locate(ip)
             _update(ip, pubip)
-        except SocketError:
+        except SocketError as e:
             pass
 
 
