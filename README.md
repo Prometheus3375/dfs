@@ -3,7 +3,7 @@
 
 If you are going to use source code, download and install [Python 3.7.5](https://www.python.org/downloads/release/python-375/).
 
-I recommend to use [Docker](https://www.docker.com/), docker images for this project you can download [here](https://hub.docker.com/repository/docker/ssemenyuk/dfs).
+I recommend to use [Docker](https://www.docker.com/), docker images for this project you can download [here](https://hub.docker.com/repository/docker/prometheus3375/dfs).
 
 Servers where you are going to deploy this system must not use ports 9000 and 9001.
 
@@ -18,11 +18,11 @@ Name server communicates with client while storage serves store clients' files a
 
 Download docker image of storage server.
 ```
-$ docker pull ssemenyuk/dfs:storage
+$ docker pull prometheus3375/dfs:storage
 ```
 Run container from this image.
 ```
-$ docker run --name storage -ti -p 9001:9001/tcp ssemenyuk/dfs:storage /bin/bash
+$ docker run --name storage -ti -p 9001:9001/tcp prometheus3375/dfs:storage /bin/bash
 ```
 Bash will be opened inside container. Start storage server.
 ```
@@ -61,11 +61,11 @@ Type `fg 1` and then press Ctrl+C.
 
 Download docker image of name server.
 ```
-$ docker pull ssemenyuk/dfs:server
+$ docker pull prometheus3375/dfs:server
 ```
 Run container from this image.
 ```
-$ docker run --name server -ti -p 9000:9000/tcp ssemenyuk/dfs:server /bin/bash
+$ docker run --name server -ti -p 9000:9000/tcp prometheus3375/dfs:server /bin/bash
 ```
 Bash will be opened inside container. Start name server.
 ```
@@ -104,11 +104,11 @@ Its own VFS is saved to file `ActualFS.txt`. VFS of each storage server is writt
 
 Download docker image of client.
 ```
-$ docker pull ssemenyuk/dfs:client
+$ docker pull prometheus3375/dfs:client
 ```
 Run container from this image.
 ```
-$ docker run --name client -ti ssemenyuk/dfs:client /bin/bash
+$ docker run --name client -ti prometheus3375/dfs:client /bin/bash
 ```
 Bash will be opened inside container. Start client.
 ```
