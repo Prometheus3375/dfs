@@ -3,7 +3,6 @@ from ipaddress import IPv4Address, AddressValueError, IPv4Network
 from math import ceil
 from socket import socket, error as _error, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, gethostbyname
 from struct import pack, unpack, calcsize
-from time import sleep
 
 from Common.Misc import EnumCode, MyError
 
@@ -13,9 +12,10 @@ Error_SocketClosed = Errors('The remote host has closed the connection')
 Error_Other = Errors.top + 1
 
 ChunkSize = 1024  # in bytes
-SleepTime = 0.01  # in seconds
 SocketTimeout = 1800  # in seconds
 
+UByteFormat = '!B'
+UByteSize = calcsize(UByteFormat)
 IntFormat = '!i'
 IntSize = calcsize(IntFormat)
 ULongFormat = '!Q'
@@ -109,12 +109,16 @@ def _sendall(sock: socket, bts: bytes):
         raise SocketError(Error_SocketClosed)
 
 
-def SendULong(sock: socket, i: int):
-    _sendall(sock, pack(ULongFormat, i))
+def SendUByte(sock: socket, i: int):
+    _sendall(sock, pack(UByteFormat, i))
 
 
 def SendInt(sock: socket, i: int):
     _sendall(sock, pack(IntFormat, i))
+
+
+def SendULong(sock: socket, i: int):
+    _sendall(sock, pack(ULongFormat, i))
 
 
 def _sendChunk(sock: socket, chunk: bytes):
@@ -123,7 +127,6 @@ def _sendChunk(sock: socket, chunk: bytes):
 
 def _sendSizedChunk(sock: socket, chunk: bytes):
     SendInt(sock, len(chunk))
-    sleep(SleepTime)
     _sendChunk(sock, chunk)
 
 
@@ -131,7 +134,6 @@ def SendBytes(sock: socket, bts: bytes):
     n = ceil(len(bts) / ChunkSize)
     # Send number of chunks
     SendInt(sock, n)
-    sleep(SleepTime)
     if n > 0:
         # Send first n - 1 chunks
         for i in range(n - 1):
@@ -154,6 +156,11 @@ def _recv(sock: socket, bufsize: int) -> bytes:
     if result:
         return result
     raise SocketError(Error_SocketClosed)
+
+
+def RecvUByte(sock: socket) -> int:
+    result = _recv(sock, UByteSize)
+    return unpack(UByteFormat, result)[0]
 
 
 def RecvInt(sock: socket) -> int:

@@ -37,17 +37,20 @@ def replicate(sock: socket):
     # Start replication
     for _ in range(paths):
         # Receive path
+        SendSignal(sock)
         path = RecvStr(sock)
         log = f'Starting to replicate \'{path}\' from storage %s' % host
         Logger.add(log)
         # Prepare path
         validpath = FS.CreateFile(path)
         # Receive chunk number
+        SendSignal(sock)
         chunks = RecvULong(sock)
         # Write chunks
         for i in range(chunks):
             fpath = ospath.join(validpath, str(i))
             with open(fpath, 'wb') as f:
+                SendSignal(sock)
                 f.write(RecvBytes(sock))
         # Finish file replication
         Logger.add(log + ' - success')

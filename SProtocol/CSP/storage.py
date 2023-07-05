@@ -36,10 +36,13 @@ def ServeClient(sock: socket):
 def upload(sock: socket, path: str):
     Logger.addHost(*sock.getpeername(), 'attempts to upload a file to \'%s\'' % path)
     validpath = FS.CreateFile(path)
+    # Get chunk number
+    SendSignal(sock)
     chunks = RecvULong(sock)
     for i in range(chunks):
         fpath = ospath.join(validpath, str(i))
         with open(fpath, 'wb') as f:
+            SendSignal(sock)
             f.write(RecvBytes(sock))
     Logger.addHost(*sock.getpeername(), 'has uploaded file \'%s\'' % path)
     SendResponse(sock, SUCCESS)
@@ -56,6 +59,7 @@ def download(sock: socket, path: str):
     validpath = FS.GetValidPath(path)
     # Send file
     SendULong(sock, chunks)
+    RecvSignal(sock)
     for i in range(chunks):
         fpath = ospath.join(validpath, str(i))
         with open(fpath, 'rb') as f:

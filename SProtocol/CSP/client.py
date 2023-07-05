@@ -30,12 +30,15 @@ def print_progress(percent: float):
 def upload(sock: socket, path: str) -> bool:
     size = ospath.getsize(path)
     chunks = ceil(size / FileChunkSize)
+    # Send chunk number
+    RecvSignal(sock)
     SendULong(sock, chunks)
     processed = 0
     print_progress(processed / size)
     with open(path, 'rb') as f:
         bts = f.read(FileChunkSize)
         while bts:
+            RecvSignal(sock)
             SendBytes(sock, bts)
             processed += len(bts)
             print_progress(processed / size)
@@ -49,6 +52,7 @@ def download(sock: socket, path: str) -> bool:
     chunks = RecvULong(sock)
     print_progress(0)
     with open(path, 'wb') as f:
+        SendSignal(sock)
         for i in range(chunks):
             f.write(RecvBytes(sock))
             print_progress((i + 1) / chunks)
