@@ -44,18 +44,29 @@ def _ls(args: list):
 
 def create(path: str, isDir: bool):
     if check_path(path): return
+    if VFS.exists(path):
+        print(f'\'%s\' already exists' % path)
+        return
     if not VFS.add(path, isDir):
-        print(f'\'%s\' already exists or some path elements are files' % path)
+        print(f'Some elements of \'%s\' are files' % path)
 
 
 def remove(args: list):
     path = args[0]
     if check_path(path): return
+    if not VFS.exists(path):
+        print(f'\'%s\' does not exist' % path)
+        return
+    if VFS.isparent(path):
+        print(f'\'%s\' cannot be removed from current working directory' % path)
+        return
     if not VFS.isempty(path):
         confirm = input(f'\'%s\' is not empty. Are you sure? [Y\\n]: ' % path).lower()
-        if confirm != 'y': return
+        if confirm != 'y':
+            print('Operation aborted')
+            return
     if not VFS.remove(path):
-        print(f'\'%s\' does not exist or cannot be removed' % path)
+        print(f'\'%s\' cannot be removed' % path)
 
 
 def _abs(args: list):
@@ -67,22 +78,20 @@ def _abs(args: list):
         print(f'\'%s\' does not exist' % path)
 
 
-Command('exit', 0, (), lambda args: exit(0))
-Command('cd', 1, (str,), _cd)
-Command('ls', 0, (), lambda args: _ls(['.']))
-Command('lsp', 1, (str,), _ls)
-Command('mkfile', 1, (str,), lambda args: create(args[0], False))
-Command('mkdir', 1, (str,), lambda args: create(args[0], True))
-Command('rm', 1, (str,), remove)
-Command('abs', 1, (str,), _abs)
-# Command('rmfile', 1, (str,), remove)
-# Command('rmdir', 1, (str,), remove)
+Command.zero('exit', lambda args: exit(0))
+Command.one('cd', str, _cd)
+Command.zero('ls', lambda args: _ls(['.']))
+Command.one('ls', str, _ls)
+Command.one('mkfile', str, lambda args: create(args[0], False))
+Command.one('mkdir', str, lambda args: create(args[0], True))
+Command.one('rm', str, remove)
+Command.one('abs', str, _abs)
 
-Command('download', 2, (str, str), lambda args: None)
-Command('upload', 2, (str, str), lambda args: None)
-Command('cpfile', 2, (str, str), lambda args: None)
-Command('mvfile', 2, (str, str), lambda args: None)
-Command('format', 0, (), lambda args: None)
+Command.single('download', 2, (str, str), lambda args: None)
+Command.single('upload', 2, (str, str), lambda args: None)
+Command.single('cpfile', 2, (str, str), lambda args: None)
+Command.single('mvfile', 2, (str, str), lambda args: None)
+Command.zero('format', lambda args: None)
 
 
 def prompt() -> str:
@@ -124,5 +133,8 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    shell(prompt)
+    try:
+        # main()
+        shell(prompt)
+    except KeyboardInterrupt:
+        pass

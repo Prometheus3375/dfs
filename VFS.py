@@ -4,6 +4,8 @@ class Node:
         if root is None:
             self.path = name
             root = self
+        elif root is Root:
+            self.path = root.path + name
         else:
             self.path = root.path + Separator + name
         if isDir:
@@ -40,15 +42,12 @@ class Node:
         return self.entities[item]
 
     def __contains__(self, item: str) -> bool:
-        return item in self.entities
+        return self.isDir() and item in self.entities
 
 
-Separator = '/'
-Root = Node('~', True)
-RootStart = Root.name + Separator
-RootStartLen = len(RootStart)
-CWD = Root
-BadChars = '\\', '//', ':', '*', '?', '"', '<', '>', '|'
+def format():
+    global Root
+    Root = Node(Separator, True)
 
 
 def init(paths: list, types: list):
@@ -56,9 +55,10 @@ def init(paths: list, types: list):
         add(path, typ)
 
 
-def format():
-    global Root
-    Root = Node('~', True)
+Separator = '/'
+format()
+CWD = Root
+BadChars = '\\', '//', ':', '*', '?', '"', '<', '>', '|'
 
 
 def check(path: str) -> bool:
@@ -68,19 +68,26 @@ def check(path: str) -> bool:
     return True
 
 
+def isroot(path: str) -> bool:
+    return path == Root.path
+
+
 def parsePath(path: str) -> tuple:
-    path = path.strip(Separator)
-    if path == Root.path:
+    if isroot(path):
         cwd = Root
         path = '.'
-    elif path.startswith(RootStart):
+    elif path[0] == Separator:
         cwd = Root
-        path = path[RootStartLen:]
     else:
         cwd = CWD
+    path = path.strip(Separator)
     nodes = path.split(Separator)
     last = nodes[len(nodes) - 1]
     return cwd, nodes, last
+
+
+def cwdPath() -> str:
+    return CWD.path
 
 
 def nodeat(path: str) -> Node:
@@ -121,6 +128,21 @@ def exists(path: str) -> bool:
     return False
 
 
+def absPath(path: str) -> str:
+    node = nodeat(path)
+    if node:
+        nodes = []
+        while node != node['..']:
+            nodes.append(node.name)
+            node = node['..']
+        return Root.path + Separator.join(nodes[::-1])
+    return Root.path
+
+
+def isparent(path: str) -> bool:
+    return cwdPath().startswith(absPath(path))
+
+
 def add(path: str, isDir: bool) -> bool:
     cwd, nodes, last = parsePath(path)
     for name in nodes:
@@ -129,6 +151,7 @@ def add(path: str, isDir: bool) -> bool:
         else:
             cwd.add(name, True)
         cwd = cwd[name]
+    return False
 
 
 def remove(path: str) -> bool:
@@ -139,6 +162,7 @@ def remove(path: str) -> bool:
         if not (name in cwd):
             return False
         cwd = cwd[name]
+    return False
 
 
 def cd(path: str) -> bool:
@@ -163,14 +187,3 @@ def ls(path) -> tuple:
                     types.append(entities[name].isFile())
             return names, types
     return None
-
-
-def cwdPath() -> str:
-    return CWD.path
-
-
-def absPath(path: str) -> str:
-    cwd, nodes, last = parsePath(path)
-    if cwd is Root:
-        return '~'
-    return cwd.path + Separator + Separator.join(nodes)

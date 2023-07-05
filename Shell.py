@@ -47,40 +47,73 @@ def shell(prompt_func=lambda: Prompt):
 
 
 class Command:
-    def __init__(self, name: str, args_n: int, arg_types: tuple, func):
-        # Check name availability
-        if name in Commands:
-            raise ValueError(f'Command \'%s\' already exists' % name)
+    def __init__(self, name: str, args_n: tuple, arg_types: tuple, funcs: tuple):
+        # Check number of args, number of types number of funcs
+        l = len(args_n)
+        if l != len(arg_types):
+            raise ValueError('Lengths of arguments number and types tuples mismatch')
+        if l != len(funcs):
+            raise ValueError('Lengths of arguments number and function tuples mismatch')
         # Check the number of args and the number of types
-        if args_n != len(arg_types):
-            raise ValueError(f'The number of types for arguments of command \'%s\' must be %d, got %d'
-                             % name, args_n, len(arg_types))
+        for n, types in zip(args_n, arg_types):
+            if n != len(types):
+                raise ValueError(f'The number of types for arguments of command \'%s\' must be %d, got %d'
+                                 % name, n, len(types))
         # Add command
-        self.args_n = args_n
-        self.arg_types = arg_types
-        self.func = func
-        if args_n == 0:
-            self.ian = f'Command \'%s\' requires no arguments' % name
-        elif args_n == 1:
-            self.ian = f'Command \'%s\' requires 1 argument' % name
+        self.args_n = list(args_n)
+        self.args_n.sort()
+        self.arg_types = {n: types for n, types in zip(args_n, arg_types)}
+        self.funcs = {n: func for n, func in zip(args_n, funcs)}
+        # Make invalid argument number error message
+        if l > 1:
+            args_n = [str(i) for i in self.args_n]
+            self.ian = f'Possible number of arguments for command \'%s\': ' % name + ', '.join(args_n)
         else:
-            self.ian = f'Command \'%s\' requires %d arguments' % (name, args_n)
+            args_n = args_n[0]
+            if args_n == 0:
+                self.ian = f'Command \'%s\' requires no arguments' % name
+            elif args_n == 1:
+                self.ian = f'Command \'%s\' requires 1 argument' % name
+            else:
+                self.ian = f'Command \'%s\' requires %d arguments' % (name, args_n)
         # Add command to dict
         Commands[name] = self
+
+    @classmethod
+    def single(cls, name: str, args_n: int, arg_types: tuple, func):
+        if name in Commands:
+            cmd = Commands[name]
+            if args_n in cmd.args_n:
+                raise ValueError('Command \'%s\' already has settings for %d argument(s)' % (name, args_n))
+            else:
+                args_n = (*cmd.args_n, args_n)
+                arg_types = (*[cmd.arg_types[i] for i in cmd.args_n], arg_types)
+                funcs = (*[cmd.funcs[i] for i in cmd.args_n], func)
+                return cls(name, args_n, arg_types, funcs)
+        return cls(name, (args_n,), (arg_types,), (func,))
+
+    @classmethod
+    def zero(cls, name: str, func):
+        return cls.single(name, 0, (), func)
+
+    @classmethod
+    def one(cls, name: str, argtype, func):
+        return cls.single(name, 1, (argtype,), func)
 
     def run(self, args: list):
         # Check the number of arguments
         l = len(args)
-        if l != self.args_n:
+        if not (l in self.args_n):
             print(self.ian)
             return
         # Check the type of arguments
-        if self.arg_types:
+        types = self.arg_types[l]
+        if types:
             for i in range(l):
                 try:
-                    args[i] = self.arg_types[i](args[i])
+                    args[i] = types[i](args[i])
                 except ValueError:
-                    print(f'Type of the %s argument must be %s' % (num2order(i + 1), self.arg_types[i].__name__))
+                    print(f'Type of the %s argument must be %s' % (num2order(i + 1), types[i].__name__))
                     return
         # Run command function
-        self.func(args)
+        self.funcs[l](args)
