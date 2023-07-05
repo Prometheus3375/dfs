@@ -131,17 +131,16 @@ def _sendSizedChunk(sock: socket, chunk: bytes):
 
 
 def SendBytes(sock: socket, bts: bytes):
-    n = ceil(len(bts) / ChunkSize)
-    # Send number of chunks
-    SendInt(sock, n)
+    n = len(bts)
+    # Send size
+    SendULong(sock, n)
     if n > 0:
-        # Send first n - 1 chunks
-        for i in range(n - 1):
+        # Get number of chunks
+        chunks = ceil(n / ChunkSize)
+        # Send all chunks
+        for i in range(chunks):
             this = bts[i * ChunkSize:(i + 1) * ChunkSize]
             _sendChunk(sock, this)
-        # Send last chunk
-        last = bts[(n - 1) * ChunkSize:]
-        _sendSizedChunk(sock, last)
 
 
 def SendStr(sock: socket, s: str):
@@ -183,12 +182,17 @@ def RecvSizedChunk(sock: socket) -> bytes:
 
 
 def RecvBytes(sock: socket) -> bytes:
-    n = RecvInt(sock)
+    # Get number of bytes
+    n = RecvULong(sock)
     result = b''
     if n > 0:
-        for i in range(n - 1):
+        # Find chunk number
+        chunks = ceil(n / ChunkSize)
+        # Get all chunk except last
+        for i in range(chunks - 1):
             result += RecvChunk(sock)
-        result += RecvSizedChunk(sock)
+        # Last chunk will have different size, calculate it
+        result += _recv(sock, n - (chunks - 1) * ChunkSize)
     return result
 
 
