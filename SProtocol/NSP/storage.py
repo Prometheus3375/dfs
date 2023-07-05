@@ -1,5 +1,5 @@
+import SServer.FSFuncs as FS
 from Common import Logger as _loggerclass
-from SServer.FSFuncs import CreateFile
 from .common import *
 
 Logger = ...
@@ -53,6 +53,13 @@ def locate(sock: socket):
 @_reg(Cmd_MKFile)
 def mkfile(sock: socket):
     path = RecvStr(sock)
-    path = CreateFile(path) + '0'  # zero chunk
+    path = FS.CreateFile(path) + '0'  # zero chunk
     with open(path, 'wb'): pass
+    SendResponse(sock, SUCCESS)
+
+
+@_reg(Cmd_Remove)
+def remove(sock: socket):
+    path = RecvStr(sock)
+    FS.Remove(path)
     SendResponse(sock, SUCCESS)

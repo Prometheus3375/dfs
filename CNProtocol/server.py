@@ -5,7 +5,7 @@ from Common.Constants import ReplicationFactor
 from Common.Socket import SocketError
 from Common.VFS import VFSException
 from NServer.FileSystems import Actual
-from NServer.Storage import GetAliveServers
+from NServer.Storage import GetAliveServers, GetASWithPath
 
 # region Common
 Logger = ...
@@ -125,7 +125,8 @@ def remove(sock: socket) -> ResultType:
         SendResponse(sock, '\'%s\' was already removed on remote' % path)
         return Result_Denied
     # Path can be deleted
-    # TODO: gather all storage servers with path and delete on them
+    for ip in GetASWithPath(path):
+        CallNSP(ip, NSP.remove, path)
     # All OK, remove on actual
     Actual.remove(path)
     # Add log and response

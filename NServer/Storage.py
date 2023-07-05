@@ -106,6 +106,17 @@ def GetAliveServers() -> list:
     return [ip for ip in _storages if _storages[ip].isAlive()]
 
 
+@_lock
+def GetASWithPath(path: str) -> list:
+    ips = []
+    for ip in _storages:
+        fs: Storage = _storages[ip]
+        if fs.isAlive() and path in fs:
+            ips.append(ip)
+    return ips
+
+
+@_lock
 def GetStorage(ip: str) -> LockFS:
     return _storages[ip]
 

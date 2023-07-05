@@ -31,8 +31,7 @@ def _cmd(cmd: CommandType):
         def wrapper(sock: socket, *args):
             SendWMI(sock, NameServer)
             SendCommand(sock, cmd)
-            # noinspection PyStringFormat
-            log = 'Ordering command \'%s\' to %s:%d' % (Commands[cmd], *sock.getpeername())
+            log = 'Ordering command \'%s\' to storage %s' % (Commands[cmd], sock.getpeername()[0])
             Logger.add(log)
             return func(sock, log, *args)
 
@@ -59,3 +58,11 @@ def mkfile(sock: socket, log: str, path: str) -> bool:
         fs.add(path, True)
         return True
     return False
+
+
+@_cmd(Cmd_Remove)
+def remove(sock: socket, log: str, path: str):
+    SendStr(sock, path)
+    LogResponse(sock, log)
+    ip = sock.getpeername()[0]
+    GetStorage(ip).remove(path)
