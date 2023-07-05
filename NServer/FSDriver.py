@@ -1,6 +1,6 @@
 from threading import RLock
 
-from Common import TEST
+from Common.Constants import TEST
 from Common.VFS import FileSystem
 
 Actual = FileSystem()

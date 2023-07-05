@@ -3,8 +3,7 @@ from math import ceil
 from socket import socket, AF_INET, SOCK_STREAM, error as _error
 from struct import *
 
-from Common.Misc import Enum
-from Common.Misc import MyException
+from .Misc import Enum, MyException
 
 Errors = Enum()
 Error_Other = Errors.new()

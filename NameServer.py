@@ -2,8 +2,8 @@ from socket import SOL_SOCKET, SO_REUSEADDR
 from threading import Thread
 
 import NServer.Logger as Logger
-from CNSProtocol.server import *
-from Common import *
+from CNProtocol.server import *
+from Common.Constants import *
 
 
 class Listener(Thread):
@@ -20,7 +20,7 @@ class Listener(Thread):
             RecvCommand(sock)
         except SocketError as e:
             Logger.add('A socket error occurred during serving %s: ' % self.host + str(e))
-        except CNSError as e:
+        except CNPError as e:
             Logger.add('A protocol error occurred during serving %s: ' % self.host + str(e))
         except Exception as e:
             Logger.add('A unknown error occurred during serving %s: ' % self.host + str(e))

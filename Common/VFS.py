@@ -1,4 +1,4 @@
-from Common.Misc import MyException
+from .Misc import MyException
 
 Separator = '/'
 RootName = Separator

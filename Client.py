@@ -1,9 +1,8 @@
 import socket
 from ipaddress import IPv4Address, AddressValueError
 
-import CNSProtocol.сlient as NSP
-from CNSProtocol import CNSError
-from Common import *
+import CNProtocol.сlient as CNP
+from Common.Constants import *
 from Common.Shell import shell, Command, User
 from Common.Socket import SocketError, Error_Other
 from Common.VFS import FileSystem, VFSException
@@ -55,14 +54,14 @@ def absPath(path: str):
 # region With connect
 def update():
     try:
-        paths_types = NSP.update(Server)
+        paths_types = CNP.update(Server)
         FS.fillFromLines(paths_types)
     except SocketError as e:
         if e.err == Error_Other:
             print('Unknown error occurred: ' + str(e))
         else:
             print('Failed to connect to server')
-    except CNSError as e:
+    except CNP.CNPError as e:
         print(e)
 
 

@@ -1,6 +1,6 @@
 from Common.Socket import *
-from NServer.FSAbstraction import WalkActual
-from . import *
+from NServer.FSDriver import WalkActual
+from .common import *
 
 Command2Func = {}
 
@@ -19,7 +19,7 @@ def RecvCommand(sock: socket):
     if RemoteCommands.valid(cmd):
         Command2Func[cmd](sock)
     else:
-        raise CNSError('Invalid command passed from client %s:%d' % sock.getpeername())
+        raise CNPError('Invalid command passed from client %s:%d' % sock.getpeername())
 
 
 @_reg(Command_Update)

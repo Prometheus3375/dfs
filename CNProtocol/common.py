@@ -14,7 +14,7 @@ Command_Download = RemoteCommands.new()
 Command_Upload = RemoteCommands.new()
 
 
-class CNSError(MyException):
+class CNPError(MyException):
     pass
 
 

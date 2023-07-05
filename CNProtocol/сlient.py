@@ -1,5 +1,5 @@
 from Common.Socket import *
-from . import *
+from .common import *
 
 
 def _sendCommand(sock: socket, cmd: int):
