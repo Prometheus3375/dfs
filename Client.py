@@ -287,8 +287,7 @@ Command.add('download', 2, (str, str), download)
 
 def SetServer():
     while True:
-        # ip = 'localhost' if TEST else input('Input DFS server IP address or domain name: ').strip()
-        ip = '15.188.77.193'
+        ip = 'localhost' if TEST else input('Input DFS server IP address or domain name: ').strip()
         # Check IP or domain
         ip = CheckIP(ip)
         if ip: break
