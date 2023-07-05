@@ -313,7 +313,8 @@ def upload(sock: socket) -> ResultType:
     loaderfs.add(path, False)
     # Log
     Logger.addHost(*sock.getpeername(), 'has added \'%s\'' % path)
-    # TODO: replication
+    # Init replication
+    NSP.ReplicateFromOne(loader, [path])
     return Result_Success
 
 

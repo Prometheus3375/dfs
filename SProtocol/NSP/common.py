@@ -15,11 +15,12 @@ Cmd_Flush = Commands('flush')
 Cmd_Info = Commands('info')
 Cmd_Upload = Commands('upload')
 Cmd_Download = Commands('download')
-Cmd_Replicate = Commands('replicate')
-Cmd_Fix = Commands('fix')
+Cmd_PrepareReplicate = Commands('prep replicate')
+Cmd_DoReplicate = Commands('do replicate')
 
 InfoSeparator = '\n'
 LoadTimeout = 60
+PathSeparator = '\n'
 
 ResponseType = str
 SUCCESS = ''

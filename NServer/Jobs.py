@@ -18,7 +18,7 @@ def _lock(func):
 
 
 @_lock
-def new(sock: socket) -> int:
+def new(sock: socket = None) -> int:
     m = max(_jobs) + 2 if _jobs else 0
     m += 2  # so range(m) contains max(_jobs) and max(_jobs) + 1
     free = [i for i in range(m) if i not in _jobs]

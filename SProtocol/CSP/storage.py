@@ -25,8 +25,10 @@ def ServeClient(sock: socket):
             upload(sock, path)
         elif j.typ == Jobs.JT_Download:
             download(sock, path)
-        else:
+        elif j.typ == Jobs.JT_Replicate:
             raise CSPException('Replication job passed from client %s:%d' % sock.getpeername())
+        else:
+            raise CSPException('Unknown job passed from client %s:%d' % sock.getpeername())
     else:
         raise CSPException('Invalid job passed from client %s:%d' % sock.getpeername())
 

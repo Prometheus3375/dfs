@@ -162,6 +162,13 @@ class Dir(Node):
             subs += subs[i].allSubdirs()
         return subs
 
+    def allSubfiles(self) -> list:
+        subfiles = [d for d in self.entities.values() if d.isFile]
+        subdirs = [d for d in self.entities.values() if d.isDir]
+        for i in range(len(subdirs)):
+            subfiles += subdirs[i].allSubfiles()
+        return subfiles
+
     def hasInSubnodes(self, node):
         return node in self.allSubnodes()
 
@@ -482,6 +489,9 @@ class FileSystem:
 
     def walk(self) -> list:
         return [node.getPath() for node in self.Root.walk()]
+
+    def walkFiles(self) -> list:
+        return [node.getPath() for node in self.Root.allSubfiles()]
 
     def walkWithTypes(self) -> list:
         return [node.getPath() + Walk_PathTypeSep + str(node.isDir) for node in self.Root.walk()]

@@ -72,11 +72,12 @@ class Storage(LockFS):
 def _update(ip: str, pubip: str, space: int):
     if ip in _storages:
         store: Storage = _storages[ip]
+        # Update storage data
         store.pubip = pubip
         store.space = space
+        # Dead storage has come online
         if store.isDead():
-            store.status = Status_Fixing
-            # TODO: create thread and fix storage
+            store.status = Status_Alive
     else:
         Storage(ip, pubip, space)
 
@@ -90,11 +91,19 @@ def FindStorages():
         # Do not locate x.y.z.0
         if is31 and ip[-1] == '0': continue
         try:
+            # Locate storage
             pubip, space = NSP.locate(ip)
+            # Update info
             _update(ip, pubip, space)
         except SocketError:
+            # A storage is lost
             if ip in _storages:
-                _storages[ip].status = Status_Dead
+                store: Storage = _storages[ip]
+                # Mark as dead
+                store.status = Status_Dead
+                # Replicate everything from dead storage
+                paths = store.walkFiles()
+                NSP.Replicate(paths)
 
 
 def FinderThread():
@@ -121,6 +130,16 @@ def GetASWithPath(path: str) -> list:
     alive = []
     for fs in _storages.values():
         if fs.isAlive() and path in fs:
+            alive.append(fs)
+    alive.sort(key=lambda x: x.space, reverse=True)
+    return [store.ip for store in alive]
+
+
+@_lock
+def GetASNoPath(path: list) -> list:
+    alive = []
+    for fs in _storages.values():
+        if fs.isAlive() and path not in fs:
             alive.append(fs)
     alive.sort(key=lambda x: x.space, reverse=True)
     return [store.ip for store in alive]

@@ -1,11 +1,13 @@
 import functools
+from threading import Thread
 
 from Common import Logger as _loggerclass
 from Common.Constants import StorageServerPort
 from Common.JobEx import SendJob
-from Common.Socket import connection, RecvULong
-from Common.VFS import Join
-from NServer.Storage import GetStorage
+from Common.Socket import connection, RecvULong, SocketError
+from Common.VFS import Join, VFSException
+from NServer import Jobs
+from NServer.Storage import GetStorage, GetASNoPath, GetASWithPath
 from SProtocol.NSP.common import *
 from SProtocol.common import *
 
@@ -22,7 +24,7 @@ def LogResponse(sock: socket, log: str) -> bool:
     if re == SUCCESS:
         Logger.add(log + ' - success')
         return True
-    Logger.add(log + ' - fail -> ' + re)
+    Logger.add(log + ' - fail' + (' -> ' + re if re else ''))
     return False
 
 
@@ -149,8 +151,93 @@ def download(sock: socket, log: str, job: int, path: str) -> bool:
     return LogResponse(sock, log)
 
 
-@_cmd(Cmd_Replicate)
-def replicate(sock: socket, log: str, job: int, path: str) -> bool:
+@_cmd(Cmd_PrepareReplicate)
+def prepare_replicate(sock: socket, log: str, job: int, paths: list) -> bool:
+    send = PathSeparator.join(paths)
     SendJob(sock, job)
-    SendStr(sock, path)
+    SendStr(sock, send)
     return LogResponse(sock, log)
+
+
+@_cmd(Cmd_DoReplicate)
+def do_replicate(sock: socket, log: str, loader_ip: str, job: int, paths: list) -> bool:
+    if prepare_replicate(loader_ip, job, paths):
+        SendJob(sock, job)
+        SendStr(sock, loader_ip)
+        return LogResponse(sock, log)
+    Logger.add(log + ' - fail')
+    return False
+
+
+def _replicate_from_one(loader: str, paths: list):
+    servers = {}
+    # Get dict of servers to replicate
+    for path in paths:
+        ips = GetASNoPath(path)
+        for ip in ips:
+            if ip in servers:
+                servers[ip].append(path)
+            else:
+                servers[ip] = [path]
+    # Try to replicate
+    for ip, pts in servers.items():
+        # Remove paths already replicated
+        pts = [p for p in pts if p in paths]
+        if not pts: continue
+        job = Jobs.new()
+        try:
+            if do_replicate(loader, job, pts):
+                # Success, update storage data
+                fs = GetStorage(ip)
+                for p in pts:
+                    if p in fs:
+                        fs.remove(p)
+                    fs.add(p, False)
+                # Remove replicated paths
+                paths = [path for path in paths if path not in pts]
+                # Break if all replicated
+                if not paths: break
+        except NSPException as e:
+            Logger.add('A protocol error occurred during connecting to storage %s: ' % ip + str(e))
+        except SocketError as e:
+            Logger.add('A socket error occurred during connecting to storage %s: ' % ip + str(e))
+        except VFSException as e:
+            Logger.add('A VFS error occurred during connecting to storage %s: ' % ip + str(e))
+        except Exception as e:
+            Logger.add('An unknown error occurred during connecting to storage %s: ' % ip + str(e))
+        Jobs.complete(job)
+    return paths
+
+
+def ReplicateFromOne(loader: str, paths: list):
+    if not (loader and paths): return
+    Thread(daemon=True, target=_replicate_from_one, args=(loader, paths)).start()
+
+
+def _replicate(paths: list):
+    servers = {}
+    # Get dict of servers where that paths exists
+    for path in paths:
+        ips = GetASWithPath(path)
+        for ip in ips:
+            if ip in servers:
+                servers[ip].append(path)
+            else:
+                servers[ip] = [path]
+    # Replicate until all replicated
+    for ip, pts in servers.items():
+        # Remove paths already replicated
+        pts = [p for p in pts if p in paths]
+        # Continue if no paths
+        if not pts: continue
+        # Replicate from current
+        remaining = _replicate_from_one(ip, pts)
+        # Remove replicated paths
+        paths = [path for path in paths if (path not in pts) or (path in remaining)]
+        # Break if all replicated
+        if not paths: break
+
+
+def Replicate(paths: list):
+    if not paths: return
+    Thread(daemon=True, target=_replicate, args=(paths,)).start()

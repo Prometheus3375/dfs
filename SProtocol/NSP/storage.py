@@ -1,5 +1,6 @@
 import os.path as ospath
 
+import SProtocol.SSP.storage_client as SSP
 import SServer.FSFuncs as FS
 import SServer.Jobs as Jobs
 from Common import Logger as _loggerclass
@@ -156,4 +157,27 @@ def download(sock: socket) -> bool:
     if not j.wait(LoadTimeout):
         Jobs.CompleteJob(job)
         return True
+    return False
+
+
+@_reg(Cmd_PrepareReplicate)
+def prepare_replicate(sock: socket) -> bool:
+    job = RecvJob(sock)
+    paths = RecvStr(sock)
+    paths = paths.strip().split(PathSeparator)
+    j = Jobs.AddReplicationJob(job, paths)
+    SendResponse(sock, SUCCESS)
+    if not j.wait(LoadTimeout):
+        Jobs.CompleteJob(job)
+        return True
+    return False
+
+
+@_reg(Cmd_DoReplicate)
+def do_replicate(sock: socket) -> bool:
+    job = RecvJob(sock)
+    ip = RecvStr(sock)
+    # noinspection PyTypeChecker
+    SSP.replicate(ip, job)
+    SendResponse(sock, SUCCESS)
     return False
