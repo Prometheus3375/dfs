@@ -2,6 +2,7 @@ from threading import Lock, Thread
 
 import CNProtocol.server as CNP
 import NServer.Jobs as Jobs
+import NServer.Storage as Storage
 import SProtocol.NSP.server as NSP
 from Common.Constants import NameServerClientPort, TEST
 from Common.Logger import ServerLogger
@@ -9,7 +10,6 @@ from Common.Socket import CheckNet
 from Common.Socket import socket, SocketError, BindAndListen, Accept
 from Common.VFS import VFSException
 from NServer.FileSystems import SaveActual, LoadActual
-from NServer.Storage import SaveStorageData, StartFinder, SetNet
 
 LogFile = 'Nlog.txt'
 Logger = ServerLogger(LogFile, not TEST)
@@ -47,7 +47,7 @@ def SetLocalNet():
         if not res:
             break
         print(res)
-    SetNet(net)
+    Storage.SetNet(net)
 
 
 def incoming():
@@ -62,9 +62,10 @@ def incoming():
 def main():
     CNP.SetLogger(Logger)
     NSP.SetLogger(Logger)
+    Storage.SetLogger(Logger)
     LoadActual()
     SetLocalNet()
-    StartFinder()
+    Storage.StartFinder()
     # Thread(daemon=True, target=incoming).start()
     incoming()
 
@@ -79,4 +80,4 @@ if __name__ == '__main__':
     finally:
         ClientSocket.close()
         SaveActual()
-        SaveStorageData()
+        Storage.SaveStorageData()

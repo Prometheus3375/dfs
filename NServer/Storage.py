@@ -5,12 +5,20 @@ from threading import RLock, Thread
 from time import sleep
 
 import SProtocol.NSP.server as NSP
+from Common import Logger as _loggerclass
 from Common.Misc import Enum
 from Common.Socket import SocketError
 from Common.VFS import LockFS
 
 FinderPeriod = 30  # in seconds
 FinderNet = ...
+Logger = ...
+
+
+def SetLogger(logger: _loggerclass):
+    global Logger
+    Logger = logger
+
 
 _storages = {}
 Statuses = Enum()
@@ -78,8 +86,10 @@ def _update(ip: str, pubip: str, space: int):
         # Dead storage has come online
         if store.isDead():
             store.status = Status_Alive
+            Logger.add('Storage %s has come online' % ip)
     else:
         Storage(ip, pubip, space)
+        Logger.add('Added new storage %s' % ip)
 
 
 @_lock
@@ -101,6 +111,7 @@ def FindStorages():
                 store: Storage = _storages[ip]
                 # Mark as dead
                 store.status = Status_Dead
+                Logger.add('Storage %s has gone offline' % ip)
                 # Replicate everything from dead storage
                 paths = store.walkFiles()
                 NSP.Replicate(paths)
