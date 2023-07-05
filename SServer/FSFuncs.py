@@ -83,6 +83,14 @@ def Remove(path: str):
     _remove(path)
 
 
+def Rename(path: str, name: str):
+    path = _convert_path(path)
+    parent, _ = ospath.split(path)
+    newpath = ospath.join(parent, name)
+    _remove(newpath)
+    os.rename(path, newpath)
+
+
 @_lock
 def Flush():
     _remove_dir(root_dir)

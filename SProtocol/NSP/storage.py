@@ -1,6 +1,6 @@
 import SServer.FSFuncs as FS
 from Common import Logger as _loggerclass
-from .common import *
+from SProtocol.NSP.common import *
 
 Logger = ...
 PublicIP = ...
@@ -42,7 +42,7 @@ def ServeNameServer(sock: socket):
         finally:
             Logger.add(log + ' - ' + ('fail' if fail else 'success'))
     else:
-        raise NSPException('Invalid command passed from client %s:%d' % sock.getpeername())
+        raise NSPException('Invalid command passed from nameserver %s:%d' % sock.getpeername())
 
 
 @_reg(Cmd_Locate)
@@ -62,4 +62,12 @@ def mkfile(sock: socket):
 def remove(sock: socket):
     path = RecvStr(sock)
     FS.Remove(path)
+    SendResponse(sock, SUCCESS)
+
+
+@_reg(Cmd_Rename)
+def rename(sock: socket):
+    path = RecvStr(sock)
+    name = RecvStr(sock)
+    FS.Rename(path, name)
     SendResponse(sock, SUCCESS)

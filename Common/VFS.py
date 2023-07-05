@@ -39,6 +39,12 @@ def RaiseIfBadName(name: str):
                            % (name, '\', \''.join(BadNameChars)))
 
 
+def Join(names: list) -> str:
+    for name in names:
+        RaiseIfBadName(name)
+    return Separator.join([name.lower() for name in names])
+
+
 class VFSException(MyException):
     pass
 
@@ -458,15 +464,6 @@ class FileSystem:
     def copy(self, what: str, to: str) -> Node:
         return self.copyNode(self.nodeAt(what), to)
 
-    def fill(self, paths_types: list):
-        for pt in paths_types:
-            path, isDir = pt
-            if self.canBeAdded(path):
-                self.add(path, isDir)
-
-    def flush(self):
-        FileSystem.__init__(self)
-
     def cd(self, path: str):
         node = self.dirAt(path)
         self.CWD = node
@@ -488,6 +485,12 @@ class FileSystem:
     def walkWithTypes(self) -> list:
         return [node.getPath() + Walk_PathTypeSep + str(node.isDir) for node in self.Root.walk()]
 
+    def fill(self, paths_types: list):
+        for pt in paths_types:
+            path, isDir = pt
+            if self.canBeAdded(path):
+                self.add(path, isDir)
+
     def fillFromLines(self, lines: list, skip_malformed: bool = True):
         check = not skip_malformed
         pts = []
@@ -503,6 +506,13 @@ class FileSystem:
             elif check:
                 raise ValueError('Line \'%s\' is malformed' % line)
         self.fill(pts)
+
+    def fillFromFS(self, fs):
+        paths_types = [(node.getPath(), node.isDir) for node in fs.Root.walk()]
+        self.fill(paths_types)
+
+    def flush(self):
+        FileSystem.__init__(self)
 
 
 class LockFS(FileSystem): pass

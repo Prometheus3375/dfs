@@ -72,7 +72,7 @@ def update(sock: socket) -> ResultType:
     return Result_Success
 
 
-# region make Node
+# region Make node
 def _cant_add_node(sock: socket, path: str) -> bool:
     Logger.addHost(*sock.getpeername(), 'attempts to add \'%s\'' % path)
     if Actual.cantBeAdded(path):
@@ -98,10 +98,11 @@ def mkfile(sock: socket) -> ResultType:
         if CallNSP(ip, NSP.mkfile, path):
             count += 1
             if count == ReplicationFactor: break
-    # Response
+    # None server added - no update on actual
     if count == 0:
         SendResponse(sock, '\'%s\' cannot be created on remote' % path)
         return Result_Denied
+    # Response
     Actual.add(path, False)
     return _node_added(sock, path)
 
@@ -156,7 +157,14 @@ def rename(sock: socket) -> ResultType:
     if _is_dir(sock, path):
         return Result_Denied
     # Can be renamed
-    # TODO: gather all storage servers with path and rename on them
+    count = 0
+    for ip in GetASWithPath(path):
+        if CallNSP(ip, NSP.rename, path, name):
+            count += 1
+    # None server renamed - no rename on actual
+    if count == 0:
+        SendResponse(sock, '\'%s\' cannot be renamed to \'%s\' on remote' % t + Mes_UpdateLocal)
+        return Result_Denied
     # All OK, rename on actual
     Actual.rename(path, name)
     # Add log and response

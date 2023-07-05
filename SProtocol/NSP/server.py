@@ -3,9 +3,10 @@ import functools
 from Common import Logger as _loggerclass
 from Common.Constants import StorageServerPort
 from Common.Socket import connection
+from Common.VFS import Join
 from NServer.Storage import GetStorage
+from SProtocol.NSP.common import *
 from SProtocol.common import *
-from .common import *
 
 Logger = ...
 
@@ -66,3 +67,20 @@ def remove(sock: socket, log: str, path: str):
     LogResponse(sock, log)
     ip = sock.getpeername()[0]
     GetStorage(ip).remove(path)
+
+
+@_cmd(Cmd_Rename)
+def rename(sock: socket, log: str, path: str, name: str) -> bool:
+    SendStr(sock, path)
+    SendStr(sock, name)
+    if LogResponse(sock, log):
+        ip = sock.getpeername()[0]
+        fs = GetStorage(ip)
+        names = fs.parsePath(path)[1]
+        names[-1] = name
+        newpath = Join(names)
+        if newpath in fs:
+            fs.remove(newpath)
+        fs.rename(path, name)
+        return True
+    return False
