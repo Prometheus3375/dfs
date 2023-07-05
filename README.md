@@ -141,7 +141,7 @@ Here is the list o all available commands.
 4. `abs <path>` - prints absolute path of given path. Passed path must exist.
 5. `walk` - prints all paths in local VFS.
 
-All commands above do not require internet connection. Connection to name server is required on client startup and for all next commands.
+All commands above do not require Internet connection. Connection to the name server is required on client startup and for all next commands.
 
 1. `update` - updates local replica of VFS.
 2. `flush` - cleans all storage servers and print available space.
@@ -149,8 +149,15 @@ All commands above do not require internet connection. Connection to name server
 4. `mkdir <path>` - creates empty directory in specified path in DFS.
 5. `info <path>` - gets size, last access and last modification time of specified file in DFS.
 6. `rm <path>` - removes an entity from specified path in DFS. If this entity is non-empty directory, asks for confirmation.
-7. `re <path> <new name>` - renames an entity from specified path in DFS. 
+7. `re <path> <new name>` - renames an entity from specified path in DFS.
 8. `mv <what> <to>` - moves a file from `what` argument to directory `to`. This directory may not exist.
 9. `cp <what> <to>` - copies a file from `what` argument to directory `to`. This directory may not exist.
-10. `upload <local file> <path in DFS>` - uploads a file to specified path in DFS.
-11. `upload <file in DFS> <local path>` - downloads specified file from DFS.
+
+For next commands connection to storage servers is required. Necessary storage server will be given by the name server.
+
+1. `upload <local file> <path in DFS>` - uploads a file to DFS in specified path.
+2. `upload <file in DFS> <local path>` - downloads specified file from DFS.
+
+## 3. Component diagram
+
+![component diagram image](https://raw.githubusercontent.com/Prometheus3375/dfs/master/Diagrams/Component%20Diagram.png)
