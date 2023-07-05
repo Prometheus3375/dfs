@@ -1,5 +1,6 @@
 import SServer.FSFuncs as FS
 from Common import Logger as _loggerclass
+from Common.Socket import SendULong
 from SProtocol.NSP.common import *
 
 Logger = ...
@@ -100,3 +101,12 @@ def copy(sock: socket):
     FS.Copy(what, to)
     Logger.addHost(*sock.getpeername(), 'has copied \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)
+
+
+@_reg(Cmd_Flush)
+def flush(sock: socket):
+    Logger.addHost(*sock.getpeername(), 'attempts to flush file system')
+    FS.Flush()
+    space = FS.GetFreeSpace()
+    Logger.addHost(*sock.getpeername(), 'has flushed file system')
+    SendULong(sock, space)

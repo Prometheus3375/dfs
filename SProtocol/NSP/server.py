@@ -2,7 +2,7 @@ import functools
 
 from Common import Logger as _loggerclass
 from Common.Constants import StorageServerPort
-from Common.Socket import connection
+from Common.Socket import connection, RecvULong
 from Common.VFS import Join
 from NServer.Storage import GetStorage
 from SProtocol.NSP.common import *
@@ -116,3 +116,10 @@ def copy(sock: socket, log: str, what: str, to: str) -> bool:
         fs.copy(what, to)
         return True
     return False
+
+
+@_cmd(Cmd_Flush)
+def flush(sock: socket, log: str) -> int:
+    res = RecvULong(sock)
+    Logger.add(log + ' - success')
+    return res

@@ -7,6 +7,7 @@ from Common.VFS import FileSystem, VFSException, Node, Dir
 FS = FileSystem()
 Server = ...  # is set in SetServer
 CallVFSOutput = ...  # is set in CallVFS
+CallCNPOutput = ...  # is set in CallCNP
 
 
 def CallVFS(func, *args):
@@ -49,33 +50,34 @@ def absPath(path: str):
 
 # endregion
 # region With connect
-def update():
-    try:
-        paths_types = CNP.update(Server)
-        FS.flush()
-        FS.fillFromLines(paths_types)
-    except SocketError as e:
-        if e.code == Error_Other:
-            print('Unknown error occurred:', e)
-        else:
-            print(e)
-    except CNP.CNPException as e:
-        print(e)
-
-
-def CallCNP(func, *args) -> bool:
+def CallCNP(func, *args, print_response: bool = True) -> bool:
     """
     :param func: function to call
     :param args: additional arguments of function
+    :param print_response: print response of func or not
     :return: True if an error occurs, False otherwise
     """
     try:
         re = func(Server, *args)
-        if re: print(re)
+        if re and print_response: print(re)
+        global CallCNPOutput
+        CallCNPOutput = re
         return False
-    except (CNP.CNPException, SocketError) as e:
-        print('Error:', e)
-        return True
+    except SocketError as e:
+        if e.code == Error_Other:
+            print('Unknown error occurred:', e)
+        else:
+            print('Error occurred:', e)
+    except CNP.CNPException as e:
+        print('Error occurred:', e)
+    return True
+
+
+def update():
+    if not CallCNP(CNP.update, print_response=False):
+        paths_types = CallCNPOutput
+        FS.flush()
+        FS.fillFromLines(paths_types)
 
 
 def create(path: str, isDir: bool):
@@ -177,7 +179,9 @@ def copy(what: str, to: str):
 
 
 def flush():
-    FS.flush()
+    if not CallCNP(CNP.flush, print_response=False):
+        FS.flush()
+        print('Available space: {} GiB'.format(CallCNPOutput))
 
 
 # endregion

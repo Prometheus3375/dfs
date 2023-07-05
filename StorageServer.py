@@ -19,6 +19,8 @@ def serve(sock: socket, host: tuple):
         Logger.add('A socket error occurred during serving %s: ' % host + str(e))
     except SP.SPException as e:
         Logger.add('A protocol error occurred during serving %s: ' % host + str(e))
+    except OSError as e:
+        Logger.add('An OS error occurred during serving %s: ' % host + str(e))
     except Exception as e:
         Logger.add('A unknown error occurred during serving %s: ' % host + str(e))
     finally:

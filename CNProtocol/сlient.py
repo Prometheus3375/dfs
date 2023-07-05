@@ -1,7 +1,7 @@
 import functools
 
 from CNProtocol.common import *
-from Common.Socket import connection
+from Common.Socket import connection, RecvULong
 
 
 def _cmd(cmd: RCType):
@@ -58,13 +58,14 @@ def copy(sock: socket, what: str, to: str) -> ResponseType:
 
 
 @_cmd(Command_Flush)
-def flush(sock: socket) -> ResponseType:
-    return RecvResponse(sock)
+def flush(sock: socket) -> int:
+    return RecvULong(sock)
 
 
 @_cmd(Command_Info)
 def info(sock: socket, what: str) -> ResponseType:
     SendStr(sock, what)
+    # TODO
     return RecvResponse(sock)
 
 

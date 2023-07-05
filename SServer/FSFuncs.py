@@ -3,6 +3,7 @@ import os
 import os.path as ospath
 import shutil
 from threading import RLock
+from time import sleep
 
 root_dir = 'storage'
 sep = ospath.altsep
@@ -111,4 +112,12 @@ def Copy(what: str, to: str):
 @_lock
 def Flush():
     _remove_dir(root_dir)
+    # Small pause before recreating, without it OSError invoked randomly
+    sleep(0.1)
     os.mkdir(root_dir)
+
+
+@_lock
+def GetFreeSpace() -> int:
+    total, used, free = shutil.disk_usage('/')
+    return free // (2 ** 30)

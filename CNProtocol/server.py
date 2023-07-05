@@ -2,7 +2,7 @@ import SProtocol.NSP.server as NSP
 from CNProtocol.common import *
 from Common import Logger as _loggerclass
 from Common.Constants import ReplicationFactor
-from Common.Socket import SocketError
+from Common.Socket import SocketError, SendULong
 from Common.VFS import VFSException
 from NServer.FileSystems import Actual
 from NServer.Storage import GetAliveServers, GetASWithPath
@@ -230,4 +230,20 @@ def copy(sock: socket) -> ResultType:
     # Add log and response
     Logger.addHost(*sock.getpeername(), 'has copied \'%s\' to \'%s\'' % t)
     SendResponse(sock, SUCCESS)
+    return Result_Success
+
+
+@_reg(Command_Flush)
+def flush(sock: socket) -> ResultType:
+    Logger.addHost(*sock.getpeername(), 'attempts flush storage')
+    space = 0
+    for ip in GetAliveServers():
+        rcvd = CallNSP(ip, NSP.flush)
+        if rcvd: space += rcvd
+    space //= ReplicationFactor
+    # All OK, flush actual
+    Actual.flush()
+    # Add log and response
+    Logger.addHost(*sock.getpeername(), 'has flushed storage')
+    SendULong(sock, space)
     return Result_Success
