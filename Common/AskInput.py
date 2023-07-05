@@ -20,7 +20,7 @@ def GetIPOrDomain(path: str, prompt: str) -> str:
             if ip: break
             print('Error: \'%s\' - no such IP or domain' % ip)
     # Save IP
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, 'w', encoding='utf-8') as f:
         f.write(ip + '\n')
     return ip
 
@@ -42,6 +42,6 @@ def GetNet(path: str, prompt: str) -> str:
                 break
             print(res)
     # Save net
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, 'w', encoding='utf-8') as f:
         f.write(net + '\n')
     return net
