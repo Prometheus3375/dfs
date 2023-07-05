@@ -123,6 +123,7 @@ def _sendChunk(sock: socket, chunk: bytes):
 
 def _sendSizedChunk(sock: socket, chunk: bytes):
     SendInt(sock, len(chunk))
+    sleep(SleepTime)
     _sendChunk(sock, chunk)
 
 
@@ -130,16 +131,15 @@ def SendBytes(sock: socket, bts: bytes):
     n = ceil(len(bts) / ChunkSize)
     # Send number of chunks
     SendInt(sock, n)
+    sleep(SleepTime)
     if n > 0:
         # Send first n - 1 chunks
         for i in range(n - 1):
             this = bts[i * ChunkSize:(i + 1) * ChunkSize]
             _sendChunk(sock, this)
-            sleep(SleepTime)
         # Send last chunk
         last = bts[(n - 1) * ChunkSize:]
         _sendSizedChunk(sock, last)
-        sleep(SleepTime)
 
 
 def SendStr(sock: socket, s: str):
