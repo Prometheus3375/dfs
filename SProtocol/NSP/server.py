@@ -1,13 +1,13 @@
 import functools
 from threading import Thread
 
+import NServer.Storages as Storages
 from Common.Constants import StorageServerPort
 from Common.JobEx import SendJob
 from Common.Logger import Logger as _loggerclass
 from Common.Socket import connection, RecvULong, SocketError
 from Common.VFS import Join, VFSException
 from NServer import Jobs
-from NServer.Storage import GetStorage, GetASNoPath, GetASWithPath
 from SProtocol.NSP.common import *
 from SProtocol.common import *
 
@@ -57,7 +57,7 @@ def mkfile(sock: socket, log: str, path: str) -> bool:
     SendStr(sock, path)
     if LogResponse(sock, log):
         ip = sock.getpeername()[0]
-        fs = GetStorage(ip)
+        fs = Storages.GetStorage(ip)
         if path in fs:
             fs.remove(path)
         fs.add(path, True)
@@ -69,8 +69,6 @@ def mkfile(sock: socket, log: str, path: str) -> bool:
 def remove(sock: socket, log: str, path: str):
     SendStr(sock, path)
     LogResponse(sock, log)
-    ip = sock.getpeername()[0]
-    GetStorage(ip).remove(path)
 
 
 @_cmd(Cmd_Rename)
@@ -79,7 +77,7 @@ def rename(sock: socket, log: str, path: str, name: str) -> bool:
     SendStr(sock, name)
     if LogResponse(sock, log):
         ip = sock.getpeername()[0]
-        fs = GetStorage(ip)
+        fs = Storages.GetStorage(ip)
         names = fs.parsePath(path)[1]
         names[-1] = name
         newpath = Join(*names)
@@ -96,7 +94,7 @@ def move(sock: socket, log: str, what: str, to: str) -> bool:
     SendStr(sock, to)
     if LogResponse(sock, log):
         ip = sock.getpeername()[0]
-        fs = GetStorage(ip)
+        fs = Storages.GetStorage(ip)
         name = fs.nodeAt(what).name
         newpath = Join(to, name)
         if newpath in fs:
@@ -112,7 +110,7 @@ def copy(sock: socket, log: str, what: str, to: str) -> bool:
     SendStr(sock, to)
     if LogResponse(sock, log):
         ip = sock.getpeername()[0]
-        fs = GetStorage(ip)
+        fs = Storages.GetStorage(ip)
         name = fs.nodeAt(what).name
         newpath = Join(to, name)
         if newpath in fs:
@@ -173,7 +171,7 @@ def _replicate_from_one(loader: str, paths: list):
     servers = {}
     # Get dict of servers to replicate
     for path in paths:
-        ips = GetASNoPath(path)
+        ips = Storages.GetASNoPath(path)
         for ip in ips:
             if ip in servers:
                 servers[ip].append(path)
@@ -188,7 +186,7 @@ def _replicate_from_one(loader: str, paths: list):
         try:
             if do_replicate(ip, loader, job, pts):
                 # Success, update storage data
-                fs = GetStorage(ip)
+                fs = Storages.GetStorage(ip)
                 for p in pts:
                     if p in fs:
                         fs.remove(p)
@@ -218,7 +216,7 @@ def _replicate(paths: list):
     servers = {}
     # Get dict of servers where that paths exists
     for path in paths:
-        ips = GetASWithPath(path)
+        ips = Storages.GetASWithPath(path)
         for ip in ips:
             if ip in servers:
                 servers[ip].append(path)
